@@ -1,0 +1,16 @@
+Instruction:
+1-Create User login
+2-File Upload
+3-Comments
+4-Search
+5-Admin Panel
+6-File Upload
+Specification:
+1-User Login: Signup,Login,Session base authentication,Users
+2-File Upload: Upload,download
+3-Comments: text,reply,like and dislike
+4-Search: quries,filters
+5-Admin Panel: privilges,filters
+6-file upload: uploading and downloading
+Performance:
+
