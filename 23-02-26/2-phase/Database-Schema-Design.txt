@@ -1,0 +1,20 @@
+Design a normalized PostgreSQL schema for an E-commerce platform.
+
+Include:
+- Users
+- Products
+- Categories
+- Cart
+- CartItems
+- Orders
+- OrderItems
+
+Add:
+- Primary keys
+- Foreign keys
+- Indexes
+- Constraints
+- Proper data types
+- ON DELETE rules
+
+Explain why each relationship exists.

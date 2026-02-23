@@ -1,0 +1,11 @@
+Design a secure JWT-based authentication system in Golang using Gin.
+
+Include:
+- Register endpoint
+- Login endpoint
+- Password hashing using bcrypt
+- JWT token generation
+- Token expiration strategy
+- Middleware for protected routes
+
+Explain security considerations.

@@ -1,0 +1,10 @@
+Design role-based access control (RBAC) for an E-commerce backend.
+
+Roles:
+- User
+- Admin
+
+Show:
+- Middleware logic
+- Route protection strategy
+- How to enforce admin-only product creation

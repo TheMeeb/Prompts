@@ -1,0 +1,19 @@
+You are a senior backend engineer.
+
+Design a clean architecture folder structure for a production-ready E-commerce backend using Golang and Gin.
+
+The project must include:
+- Authentication
+- Products
+- Cart
+- Orders
+- Admin
+- PostgreSQL
+- Redis
+- JWT middleware
+
+Explain:
+- Folder structure
+- Responsibilities of each layer
+- How dependencies flow
+- Why this architecture is scalable

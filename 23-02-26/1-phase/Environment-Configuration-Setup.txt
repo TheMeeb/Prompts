@@ -1,0 +1,11 @@
+Generate a production-ready configuration setup in Go.
+
+Requirements:
+- Load environment variables from .env
+- Separate config package
+- Database config
+- Redis config
+- JWT secret
+- Graceful error handling
+
+Explain best practices for managing secrets in production.
