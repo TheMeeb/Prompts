@@ -1,0 +1,9 @@
+Design a Stripe payment integration for an E-commerce backend.
+
+Include:
+- Creating payment intent
+- Handling webhooks
+- Verifying webhook signature
+- Updating order status
+
+Explain why payment confirmation must rely on webhooks instead of frontend.

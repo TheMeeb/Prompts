@@ -1,0 +1,12 @@
+Design an admin module for managing an E-commerce platform.
+
+Admin capabilities:
+- Manage products
+- View all users
+- View all orders
+- Update order status
+
+Include:
+- Authorization checks
+- Secure endpoints
+- Audit logging strategy

@@ -1,0 +1,8 @@
+Design a Redis caching strategy for product listing endpoints.
+
+Explain:
+- What to cache
+- Cache invalidation strategy
+- TTL strategy
+- Handling cache misses
+- Preventing stale data

@@ -1,0 +1,12 @@
+Create a production-ready Docker and Docker Compose setup for:
+
+- Go backend
+- PostgreSQL
+- Redis
+- Nginx
+
+Include:
+- Multi-stage Dockerfile
+- Environment variables
+- Volume management
+- Network configuration

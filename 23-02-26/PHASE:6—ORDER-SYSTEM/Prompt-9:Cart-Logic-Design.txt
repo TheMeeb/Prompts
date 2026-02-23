@@ -1,0 +1,13 @@
+Design the cart system logic for an E-commerce backend.
+
+Include:
+- Add item to cart
+- Update quantity
+- Remove item
+- Get cart
+- Calculate total price
+
+Ensure:
+- Stock validation
+- Database consistency
+- Atomic operations

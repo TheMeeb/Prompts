@@ -1,0 +1,14 @@
+Design a production-ready order processing system.
+
+Flow:
+- Validate cart
+- Lock stock
+- Create order
+- Create order items
+- Reduce product stock
+- Clear cart
+
+Explain:
+- Transaction management
+- Rollback strategy
+- Preventing race conditions

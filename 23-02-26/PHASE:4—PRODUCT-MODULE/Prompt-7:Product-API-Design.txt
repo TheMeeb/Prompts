@@ -1,0 +1,16 @@
+Design a RESTful product module for an E-commerce backend.
+
+Include:
+- Create product
+- Update product
+- Delete product
+- Get product by ID
+- List products
+
+Add:
+- Pagination
+- Filtering by category
+- Search by name
+- Sorting by price
+
+Explain performance optimization strategies.

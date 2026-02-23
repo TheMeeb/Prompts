@@ -1,0 +1,11 @@
+Provide a complete security hardening checklist for a production E-commerce backend.
+
+Include:
+- Rate limiting
+- Input validation
+- SQL injection protection
+- Secure headers
+- CORS configuration
+- HTTPS
+- Logging sensitive data avoidance
+- JWT best practices
