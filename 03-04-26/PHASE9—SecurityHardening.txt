@@ -1,0 +1,15 @@
+You are a backend security expert.
+
+Harden a Golang social media backend for production.
+
+Implement:
+- CORS configuration
+- Rate limiting
+- Input validation
+- SQL injection prevention
+- Centralized error handling
+- Logging strategy
+- Environment variable protection
+- HTTPS configuration
+
+Explain best practices clearly.

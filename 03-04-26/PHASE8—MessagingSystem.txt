@@ -1,0 +1,14 @@
+You are a backend engineer building a messaging system.
+
+Implement:
+- Send private message
+- Fetch conversation history
+- Store timestamps
+- Pagination for messages
+
+Include:
+- Database schema
+- Query optimization
+- Efficient indexing
+- API documentation
+- JSON examples

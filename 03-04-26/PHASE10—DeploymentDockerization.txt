@@ -1,0 +1,12 @@
+You are a DevOps engineer.
+
+Prepare a Golang social media backend for production deployment.
+
+Include:
+- Dockerfile
+- docker-compose.yml (with PostgreSQL)
+- Environment variable setup
+- Production build optimization
+- Logging configuration
+- Deployment steps to VPS
+- Nginx reverse proxy setup

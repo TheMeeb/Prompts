@@ -1,0 +1,15 @@
+You are implementing a friend system in Golang.
+
+Build:
+- Send friend request
+- Accept friend request
+- Reject friend request
+- View friend list
+
+Include:
+- Friend request status handling
+- Database schema
+- Controller logic
+- Authorization checks
+- API documentation
+- Edge case handling

@@ -1,0 +1,22 @@
+You are a Golang backend engineer.
+
+Generate step-by-step instructions to initialize a production-ready Golang backend project for a social media platform.
+
+Requirements:
+- Use Go modules
+- Setup Gin (or net/http)
+- Connect PostgreSQL
+- Create config system using environment variables
+- Create database connection file
+- Add structured logging
+- Add graceful shutdown handling
+
+Include:
+- go.mod setup
+- Required dependencies
+- Sample .env file
+- Base main.go
+- Database connection code
+- Folder structure
+
+Explain each step clearly.

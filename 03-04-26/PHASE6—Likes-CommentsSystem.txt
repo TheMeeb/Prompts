@@ -1,0 +1,15 @@
+You are building the interaction system for a social media backend.
+
+Implement:
+- Like post
+- Unlike post
+- Add comment
+- Delete own comment
+
+Include:
+- Database relations
+- Foreign keys
+- Prevent duplicate likes
+- Optimized queries
+- Proper HTTP status codes
+- JSON examples

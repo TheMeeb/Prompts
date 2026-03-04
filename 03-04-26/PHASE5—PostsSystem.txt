@@ -1,0 +1,21 @@
+You are a Golang backend engineer.
+
+Build the posts system for a Facebook-like application.
+
+Features:
+- Create post
+- Edit post
+- Delete post
+- Get news feed
+- Pagination
+- Image upload support
+
+Include:
+- Database schema updates
+- Controllers
+- Services
+- Pagination logic
+- Query optimization
+- Example API requests/responses
+
+Follow RESTful principles.

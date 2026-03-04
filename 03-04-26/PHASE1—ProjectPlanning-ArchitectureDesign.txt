@@ -1,0 +1,21 @@
+You are a senior software architect.
+
+Design a complete backend architecture for a Facebook-like social media platform called ConnectSphere.
+
+Requirements:
+- Frontend in HTML,CSS,JS
+- Backend in Golang
+- PostgreSQL database
+- RESTful API architecture
+- Layered structure (Routes, Controllers, Services, Models, Middleware, Database)
+
+Generate:
+1. Clean folder structure
+2. Explanation of each layer
+3. Database schema (users, posts, comments, likes, friends, messages)
+4. ER diagram (ASCII format allowed)
+5. Indexing strategy
+6. Scalability considerations
+7. High-level system flow diagram
+
+Output everything professionally structured.

@@ -1,0 +1,20 @@
+You are a backend developer.
+
+Generate complete backend implementation for user profile management.
+
+Features:
+- View profile
+- Edit profile
+- Upload profile picture
+- View other users' profiles
+
+Include:
+- Controller
+- Service layer
+- Database queries
+- Input validation
+- Authorization checks
+- API documentation
+- JSON examples
+
+Ensure security best practices.

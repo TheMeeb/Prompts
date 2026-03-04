@@ -1,0 +1,22 @@
+You are a Golang security engineer.
+
+Build a secure JWT authentication system for a social media platform.
+
+Requirements:
+- User registration
+- Password hashing with bcrypt
+- User login
+- JWT token generation
+- JWT middleware validation
+- Token expiration handling
+- Protected routes
+
+Include:
+- User model
+- Auth controller
+- JWT helper functions
+- Middleware implementation
+- Request/Response JSON examples
+- Error handling strategy
+
+Follow clean architecture principles.
