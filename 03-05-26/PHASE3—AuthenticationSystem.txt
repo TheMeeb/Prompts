@@ -1,0 +1,21 @@
+You are a Golang security engineer.
+
+Build a secure authentication system for a messaging web app.
+
+Features:
+- User registration
+- Password hashing with bcrypt
+- User login
+- JWT token generation
+- JWT middleware for protected routes
+- Token expiration handling
+
+Include:
+- User model
+- Auth controller
+- JWT helper functions
+- Middleware implementation
+- Error handling strategy
+- Example request and response JSON
+
+Follow clean architecture principles.

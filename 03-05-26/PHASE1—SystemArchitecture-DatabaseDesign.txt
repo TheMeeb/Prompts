@@ -1,0 +1,21 @@
+You are a senior backend architect.
+
+Design the complete backend architecture for a real-time messaging web application called ChatSphere.
+
+Requirements:
+- Backend in Golang
+- PostgreSQL database
+- WebSocket-based real-time messaging
+- JWT authentication
+- Layered architecture (Routes, Controllers, Services, Models, Middleware, WebSocket manager)
+
+Generate:
+1. Clean folder structure
+2. Explanation of each layer
+3. Database schema (users, messages)
+4. ER diagram (ASCII allowed)
+5. Indexing strategy for high-performance chat queries
+6. Scalability considerations
+7. High-level message flow diagram
+
+Structure everything professionally.

@@ -1,0 +1,16 @@
+You are building the core messaging logic for a real-time chat backend.
+
+Implement:
+- Send private message
+- Store message in PostgreSQL
+- Fetch conversation history
+- Pagination for old messages
+- Mark messages as read
+
+Include:
+- Database schema
+- Indexing strategy
+- Optimized SQL queries
+- Controller and service layer
+- Example API endpoints
+- JSON request and response examples

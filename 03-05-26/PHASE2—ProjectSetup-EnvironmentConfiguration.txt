@@ -1,0 +1,22 @@
+You are a Golang backend engineer.
+
+Generate step-by-step instructions to initialize a production-ready Golang backend for a messaging web app.
+
+Requirements:
+- Use Go modules
+- Setup Gin or net/http
+- Connect PostgreSQL
+- Create configuration system using environment variables
+- Add structured logging
+- Implement graceful shutdown
+- Setup Gorilla WebSocket dependency
+
+Include:
+- go.mod setup
+- Required dependencies
+- Sample .env file
+- Database connection code
+- Base main.go structure
+- Folder structure
+
+Explain each step clearly.

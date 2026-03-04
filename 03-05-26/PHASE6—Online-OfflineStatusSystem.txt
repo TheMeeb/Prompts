@@ -1,0 +1,14 @@
+You are implementing user presence tracking in a messaging backend.
+
+Build:
+- Online user detection
+- Last seen timestamp update
+- Active users endpoint
+- WebSocket-based status broadcasting
+
+Include:
+- Database schema updates
+- In-memory storage strategy
+- Efficient update queries
+- API documentation
+- Example responses

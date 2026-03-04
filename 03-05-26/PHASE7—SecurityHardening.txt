@@ -1,0 +1,15 @@
+You are a backend security expert.
+
+Harden a Golang WebSocket messaging backend for production.
+
+Implement:
+- CORS configuration
+- Rate limiting
+- Input validation
+- SQL injection prevention
+- Secure WebSocket authentication
+- Centralized error handling
+- Logging strategy
+- HTTPS configuration
+
+Explain best practices clearly.

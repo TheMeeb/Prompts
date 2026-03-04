@@ -1,0 +1,18 @@
+You are a backend engineer implementing real-time messaging.
+
+Design and implement a WebSocket manager in Golang for a chat application.
+
+Requirements:
+- Use Gorilla WebSocket
+- Authenticate users using JWT before establishing connection
+- Maintain active user connections map
+- Handle connect/disconnect events
+- Broadcast private messages
+- Handle concurrent connections safely using goroutines and mutex
+
+Include:
+- WebSocket handler
+- Connection manager struct
+- Thread-safe implementation
+- Message flow explanation
+- Example JSON message structure

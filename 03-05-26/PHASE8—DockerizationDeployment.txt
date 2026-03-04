@@ -1,0 +1,12 @@
+You are a DevOps engineer.
+
+Prepare a Golang messaging backend for production deployment.
+
+Include:
+- Dockerfile
+- docker-compose.yml with PostgreSQL
+- Environment variable configuration
+- Production build optimization
+- Nginx reverse proxy configuration
+- HTTPS setup
+- VPS deployment steps
