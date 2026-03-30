@@ -1,0 +1,8 @@
+{
+	"project_name" : "string",
+	"id" : "string",
+	"sql" : "boolean",
+	"cross-site_Scripting" : "boolean",
+	"command_Injection" : "boolean",
+	"path_Traversal" : "boolean"
+}

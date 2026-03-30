@@ -1,8 +1,0 @@
-Explain how to implement database migrations in Golang.
-
-Include:
-- Migration tool recommendation
-- Versioning strategy
-- Folder structure
-- Rollback strategy
-- Production safety tips

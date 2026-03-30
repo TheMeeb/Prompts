@@ -1,0 +1,31 @@
+You are an experienced full-stack web developer.
+
+Create a complete authentication system with the following requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Create Login and Signup pages
+- Use fetch API to communicate with backend
+
+Backend:
+- Use Node.js with Express
+- Use SQLite as the database
+
+Features:
+- User signup and login
+- Password hashing using bcrypt
+- Input validation
+- Proper error handling
+
+Security:
+- Prevent SQL injection
+- Store passwords securely (hashed)
+- Use JWT or session-based authentication
+
+Database:
+- Design a simple users table (id, username, email, password)
+
+Output:
+- Provide complete folder structure
+- Provide all code files (frontend + backend)
+- Explain how to run the project step by step
