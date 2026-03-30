@@ -1,6 +1,8 @@
 {
 	"project_name" : "string",
 	"id" : "string",
+	"model" : "string",
+	"technique" : "string",
 	"sql" : "boolean",
 	"cross-site_Scripting" : "boolean",
 	"command_Injection" : "boolean",
