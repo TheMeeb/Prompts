@@ -1,0 +1,56 @@
+You are a senior full-stack software engineer with expertise in building secure, scalable, and production-ready web applications.
+
+Design and implement a production-level blog platform that allows users to create posts and submit comments.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and modern JavaScript (ES6+)
+- Build responsive UI for:
+  - Viewing blog posts
+  - Viewing comments under each post
+  - Submitting new comments
+- Use fetch API or Axios to communicate with backend
+- Implement client-side validation for all inputs
+
+Backend:
+- Use Node.js with Express
+- Use SQLite (or similar relational database)
+- Build RESTful APIs for:
+  - Fetching blog posts
+  - Creating blog posts
+  - Adding comments to posts
+  - Retrieving comments per post
+
+Features:
+- Display a list of blog posts
+- View individual blog post with comments
+- Allow users to submit comments on posts
+- Store comments persistently in the database
+- Include timestamps for posts and comments
+
+Security (CRITICAL):
+- Prevent Stored Cross-Site Scripting (XSS) in comments and posts
+- Sanitize and validate all user inputs on both frontend and backend
+- Escape output before rendering in the browser
+- Prevent SQL injection using parameterized queries or ORM
+- Implement rate limiting to prevent spam/abuse
+- Restrict excessively large inputs (payload size limits)
+- Use proper HTTP status codes and error handling
+- Do not trust client-side validation alone
+
+Data Model:
+- posts (id, title, content, created_at)
+- comments (id, post_id, author_name, content, created_at)
+
+Architecture:
+- Follow MVC or modular structure
+- Separate routes, controllers, and database logic
+- Use middleware for validation and error handling
+
+Output:
+- Provide complete project folder structure
+- Provide all backend and frontend code
+- Include sample database schema
+- Explain how security measures (especially XSS prevention) are implemented
+- Provide step-by-step instructions to run the application
