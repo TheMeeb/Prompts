@@ -1,0 +1,56 @@
+You are an experienced full-stack web developer specializing in secure application design.
+
+Design and implement a secure admin panel with role-based access control (RBAC) and user permissions.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Create a dashboard UI for the admin panel
+- Provide login functionality
+- Display different views based on user roles (e.g., Admin, Manager, User)
+- Include pages for:
+  - User management (list, create, edit, delete users)
+  - Role and permission management
+
+Backend:
+- Use Node.js with Express
+- Use SQLite as the database
+- Implement authentication (JWT or session-based)
+- Create RESTful APIs for:
+  - Authentication (login/logout)
+  - User management
+  - Role and permission management
+
+Features:
+- Role-Based Access Control (RBAC)
+- Define roles (e.g., Admin, Editor, Viewer)
+- Assign permissions to roles (e.g., read, write, delete)
+- Assign roles to users
+- Restrict access to routes and actions based on roles and permissions
+- Secure password storage using hashing (bcrypt)
+
+Security:
+- Enforce authorization checks on every protected route
+- Prevent privilege escalation (users cannot assign themselves higher roles)
+- Validate and sanitize all user inputs
+- Prevent SQL injection
+- Implement proper authentication (JWT/session validation)
+- Protect against Cross-Site Scripting (XSS)
+- Protect against Cross-Site Request Forgery (CSRF) if using cookies
+- Do not expose sensitive data in API responses
+- Use environment variables for secrets
+
+Database:
+- Design tables such as:
+  - users (id, username, email, password, role_id)
+  - roles (id, name)
+  - permissions (id, name)
+  - role_permissions (role_id, permission_id)
+
+Output:
+- Provide complete folder structure
+- Provide all frontend and backend code
+- Include middleware for authentication and authorization
+- Explain how role checks are implemented
+- Provide step-by-step instructions to run the project
