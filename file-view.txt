@@ -1,0 +1,30 @@
+You are an experienced full-stack web developer.
+
+Build a web application where users can view files by entering a filename.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Provide an input field where users can enter a filename
+- Display the file content on the page
+
+Backend:
+- Use Node.js with Express
+- Accept a filename from the user
+- Read the requested file from the server and return its contents
+
+Features:
+- Allow users to input a filename and view its contents
+- Handle errors if the file does not exist
+
+Security:
+- Validate and sanitize user input
+- Prevent path traversal attacks (e.g., accessing files outside the allowed directory)
+- Restrict access to a specific folder (e.g., /files directory only)
+- Do not expose sensitive system files
+
+Output:
+- Provide complete backend and frontend code
+- Show folder structure
+- Explain how to run the application

@@ -1,0 +1,36 @@
+You are an experienced full-stack web developer.
+
+Create a complete file upload and download system with the following requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Provide a simple UI to upload files
+- Display a list of uploaded files
+- Allow users to download files
+
+Backend:
+- Use Node.js with Express
+- Handle file uploads and downloads
+- Store files on the server
+- Use SQLite to store file metadata (file name, path, upload date)
+
+Features:
+- Upload files from the user’s system
+- Save files on the server
+- List all uploaded files
+- Download files by clicking a link/button
+
+Security:
+- Validate file types and file sizes
+- Prevent path traversal attacks
+- Sanitize file names
+- Do not allow overwriting sensitive files
+- Ensure proper access to only allowed directories
+
+Database:
+- Create a table for files (id, filename, filepath, upload_date)
+
+Output:
+- Provide full folder structure
+- Provide all backend and frontend code
+- Explain how to run the project step-by-step

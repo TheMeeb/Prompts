@@ -1,0 +1,37 @@
+You are an experienced full-stack web developer.
+
+Create a web application with a contact form that sends emails using user input.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Create a contact form with the following fields:
+  - Name
+  - Email
+  - Subject
+  - Message
+- Validate inputs on the client side
+- Submit form data to the backend using fetch API
+
+Backend:
+- Use Node.js with Express
+- Create an API endpoint to receive form data
+- Send emails using a library like Nodemailer
+
+Features:
+- Users can send messages through the contact form
+- Display success or error messages after submission
+
+Security:
+- Validate and sanitize all user inputs
+- Prevent email header injection (e.g., CRLF attacks)
+- Prevent Cross-Site Scripting (XSS)
+- Prevent command injection (if applicable)
+- Do not expose email credentials in code
+- Use environment variables for sensitive data
+
+Output:
+- Provide complete frontend and backend code
+- Show folder structure
+- Explain how to run the application
