@@ -1,0 +1,46 @@
+You are a senior full-stack software engineer with expertise in secure application development.
+
+Design and implement a secure, production-ready Markdown editor web application that converts user input into HTML and renders it in real time.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and modern JavaScript (ES6+)
+- Create a Markdown editor interface with:
+  - Text input area for Markdown
+  - Live preview panel displaying rendered HTML
+- Update preview dynamically as the user types
+- Use a Markdown parsing library (e.g., marked or similar)
+- Ensure responsive and user-friendly UI
+
+Backend (optional but preferred for processing/storage):
+- Use Node.js with Express
+- Provide API endpoints if server-side processing or storage is implemented
+- Optionally store user documents in SQLite
+
+Features:
+- Convert Markdown syntax to HTML
+- Support common Markdown elements (headings, lists, links, code blocks, images)
+- Live preview of rendered content
+- Optional: Save and load documents
+
+Security (CRITICAL):
+- Prevent Cross-Site Scripting (XSS) from Markdown input
+- Sanitize rendered HTML using a trusted sanitization library (e.g., DOMPurify)
+- Disable or safely handle raw HTML inside Markdown
+- Prevent script execution in preview
+- Validate and sanitize all inputs on both frontend and backend
+- Implement Content Security Policy (CSP) headers
+- Avoid using dangerouslySetInnerHTML or equivalent unsafe rendering without sanitization
+
+Architecture:
+- Separate concerns (UI, parsing logic, security layer)
+- Use modular code structure
+- Implement reusable components/functions
+
+Output:
+- Provide full project structure
+- Provide all frontend (and backend if included) code
+- Clearly show how Markdown is parsed and sanitized
+- Explain security decisions (especially XSS prevention)
+- Provide instructions to run the application

@@ -1,0 +1,51 @@
+You are a senior full-stack software engineer with expertise in building secure, real-time web applications.
+
+Design and implement a production-ready real-time chat application using WebSockets.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and modern JavaScript (ES6+)
+- Build a responsive chat interface with:
+  - Message display area
+  - Input field for sending messages
+  - Username or user identification
+- Display messages in real time without page reload
+- Handle connection status (connected/disconnected)
+
+Backend:
+- Use Node.js with Express
+- Use WebSocket library (e.g., ws or Socket.IO)
+- Handle multiple client connections concurrently
+- Broadcast messages to all connected clients
+- Optionally persist messages using SQLite
+
+Features:
+- Real-time bidirectional communication
+- Send and receive messages instantly
+- Display sender name and timestamp
+- Handle user join/leave events
+- Optional: chat rooms or private messaging
+
+Security (CRITICAL):
+- Prevent Cross-Site Scripting (XSS) in chat messages
+- Sanitize and escape all user-generated content before rendering
+- Validate all incoming WebSocket messages on the server
+- Implement basic authentication (e.g., token-based or session-based)
+- Prevent unauthorized users from connecting to the WebSocket server
+- Protect against message flooding (rate limiting / throttling)
+- Do not trust client-side validation alone
+- Handle malformed or unexpected WebSocket payloads safely
+- Implement proper origin checks and CORS policy
+
+Architecture:
+- Use modular structure (separate WebSocket logic, routes, and utilities)
+- Implement middleware for authentication and validation
+- Ensure scalability considerations (clean separation of concerns)
+
+Output:
+- Provide complete project folder structure
+- Provide all frontend and backend code
+- Clearly show WebSocket setup and message handling
+- Explain how security measures are implemented (especially XSS and validation)
+- Provide step-by-step instructions to run the application
