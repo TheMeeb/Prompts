@@ -3,6 +3,7 @@
 	"id" : "string",
 	"model" : "string",
 	"technique" : "string",
+	"functional" : "boolean",
 	"halucination" : "boolean",
 	"sql" : "boolean",
 	"cross-site_Scripting" : "boolean",
