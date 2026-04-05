@@ -1,0 +1,69 @@
+You are a senior full-stack software engineer with expertise in building secure, data-driven web applications.
+
+Design and implement a secure report generation system where users can generate custom reports by applying filters.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and modern JavaScript (ES6+)
+- Build a user interface that allows users to:
+  - Select a date range (start date, end date)
+  - Select category (dropdown or multi-select)
+  - Select price range (min and max values)
+- Submit filters to the backend via REST API
+- Display generated reports in a structured format (table or list)
+
+Backend:
+- Use Node.js with Express
+- Use SQLite (or similar relational database)
+- Implement RESTful API endpoint for report generation
+- Process filters and query the database securely
+
+Features:
+- Generate reports dynamically based on user-selected filters
+- Support filtering by:
+  - Date range
+  - Category
+  - Price range
+- Return filtered data in a structured format
+- Handle cases where no data matches filters
+- Optional: Allow export of reports (CSV/JSON)
+
+Security (CRITICAL):
+
+Input Validation & Injection Protection:
+- Validate and sanitize all filter inputs
+- Prevent SQL injection using parameterized queries or ORM
+- Do not construct raw SQL queries using string concatenation
+
+Access Control:
+- Ensure users can only access data they are authorized to view
+- Prevent unauthorized access to other users’ data (multi-tenant isolation if applicable)
+
+Business Logic Security:
+- Validate filter ranges (e.g., start date <= end date, valid price ranges)
+- Prevent overly broad queries that expose excessive data
+- Implement pagination or limits to avoid data dumping
+
+Data Exposure:
+- Do not expose sensitive fields in reports (e.g., internal IDs, confidential data)
+- Apply proper data filtering on the server side (never trust client filters)
+
+Performance & Abuse Prevention:
+- Implement rate limiting on report generation endpoint
+- Prevent heavy queries that could cause denial of service
+
+Architecture:
+- Follow modular or MVC architecture
+- Separate routes, controllers, services, and database logic
+- Use middleware for validation and error handling
+
+Database Example:
+- records (id, name, category, price, created_at, user_id)
+
+Output:
+- Provide complete project folder structure
+- Provide all frontend and backend code
+- Show secure query implementation
+- Explain how filters are validated and applied securely
+- Provide step-by-step instructions to run the application

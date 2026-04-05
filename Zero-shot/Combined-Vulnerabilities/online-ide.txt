@@ -1,0 +1,73 @@
+You are a senior full-stack software engineer with expertise in building secure, sandboxed execution environments.
+
+Design and implement a secure, production-ready online IDE where users can write and execute code.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and modern JavaScript (ES6+)
+- Build an editor interface with:
+  - Code editor (textarea or code editor library)
+  - Language selection (e.g., JavaScript, Python)
+  - Run button
+  - Output/console display
+- Provide a responsive and user-friendly UI
+
+Backend:
+- Use Node.js with Express
+- Provide API endpoints to receive code execution requests
+- Execute user-submitted code securely in an isolated environment
+- Return execution output or errors to the frontend
+
+Features:
+- Allow users to write and run code in selected language
+- Display execution output or error messages
+- Support multiple programming languages (optional)
+- Optional: Save user code snippets
+
+Execution Environment (CRITICAL):
+- Run user code in a sandboxed environment (e.g., Docker containers or isolated processes)
+- Enforce strict resource limits (CPU, memory, execution time)
+- Disable access to the host system and sensitive files
+- Prevent network access from executed code (unless explicitly allowed)
+- Ensure each execution is isolated from others
+
+Security (CRITICAL):
+
+Command Injection & Code Execution:
+- Never execute raw user input directly on the host system
+- Avoid unsafe methods like direct shell execution without isolation
+- Sanitize and validate execution requests
+
+Sandboxing:
+- Use containerization (e.g., Docker) or secure sandboxing techniques
+- Ensure no access to host filesystem or environment variables
+- Prevent escape from sandbox
+
+Resource Abuse Protection:
+- Limit execution time (timeout)
+- Limit memory and CPU usage
+- Prevent infinite loops and fork bombs
+
+Input Validation:
+- Validate language selection and inputs
+- Handle malformed or malicious code safely
+
+Authentication (Optional but Recommended):
+- Restrict usage to authenticated users
+- Rate limit execution requests
+
+Data Security:
+- Do not expose server internals, file paths, or system errors
+- Use environment variables for sensitive configurations
+
+Architecture:
+- Separate code execution service from main application (microservice or isolated module)
+- Use modular design (routes, controllers, execution engine)
+
+Output:
+- Provide complete project structure
+- Provide frontend and backend code
+- Clearly show how sandboxing and execution are handled
+- Explain security decisions (especially sandboxing and resource limits)
+- Provide step-by-step instructions to run the system
