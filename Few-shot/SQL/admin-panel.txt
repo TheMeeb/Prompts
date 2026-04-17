@@ -1,0 +1,161 @@
+You are an experienced full-stack web developer specializing in secure application design.
+Design and implement a secure admin panel with role-based access control (RBAC) and user permissions.
+----------------------------------------------------------------------------------------------------------
+Example 1 (RBAC Middleware Enforcement)
+Input Requirement:
+Restrict route access based on roles
+Expected Output:
+// middleware/authMiddleware.js
+function authorize(requiredPermissions) {
+  return (req, res, next) => {
+    const user = req.user;
+
+    if (!user || !user.permissions) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const hasPermission = requiredPermissions.every(p =>
+      user.permissions.includes(p)
+    );
+
+    if (!hasPermission) {
+      return res.status(403).json({ message: "Insufficient permissions" });
+    }
+
+    next();
+  };
+}
+-----------------------------
+Key Expectations Demonstrated:
+
+Authorization enforced at middleware level
+Permission-based checks (not just role name)
+Deny-by-default behavior
+-----------------------------------------------------------------------------
+Example 2 (Prevent Privilege Escalation)
+Input Requirement:
+Users should not assign themselves higher roles
+Expected Output:
+// routes/userRoutes.js
+router.post("/assign-role", authenticate, async (req, res) => {
+  const { userId, roleId } = req.body;
+
+  // Only admins can assign roles
+  if (req.user.role !== "Admin") {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  // Prevent assigning higher privilege than self
+  if (roleId === ADMIN_ROLE_ID && req.user.role !== "SuperAdmin") {
+    return res.status(403).json({ message: "Cannot assign Admin role" });
+  }
+
+  db.run("UPDATE users SET role_id = ? WHERE id = ?", [roleId, userId]);
+
+  res.json({ message: "Role updated" });
+});
+------------------------------
+Key Expectations Demonstrated:
+
+Explicit privilege checks
+Protection against vertical privilege escalation
+Parameterized queries
+-------------------------------------------------------------
+Example 3 (Secure Authentication with JWT)
+Input Requirement:
+Implement login system
+Expected Output:
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = db.get("SELECT * FROM users WHERE email = ?", [email]);
+
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
+  const match = await bcrypt.compare(password, user.password);
+
+  if (!match) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "1h" }
+  );
+
+  res.json({ token });
+});
+-----------------------------
+Key Expectations Demonstrated:
+
+Secure password verification
+JWT with environment-based secret
+Minimal data exposure
+-------------------------------------------------------------------------------
+Example 4 (Frontend Role-Based Rendering)
+Input Requirement:
+Show UI based on role
+Expected Output:
+// dashboard.js
+const user = JSON.parse(localStorage.getItem("user"));
+
+if (user.role === "Admin") {
+  document.getElementById("adminPanel").style.display = "block";
+}
+
+if (user.role === "Viewer") {
+  document.getElementById("editButton").style.display = "none";
+}
+----------------------------
+Key Expectations Demonstrated:
+Frontend role-based rendering
+(Note: Backend must still enforce security)
+-------------------------------------------------------------------------------
+Now Your Task
+Create a secure admin panel with RBAC using the following requirements:
+--Frontend:
+Use HTML, CSS, and JavaScript
+Create a dashboard UI
+Implement login functionality
+Display views based on roles (Admin, Manager, User)
+Pages required:
+User management (CRUD)
+Role and permission management
+--Backend:
+Use Node.js with Express
+Use SQLite
+Implement authentication (JWT or session-based)
+Create RESTful APIs:
+Auth (login/logout)
+User management
+Role & permission management
+--Security Requirements (STRICT):
+Enforce authorization on every protected route
+Prevent privilege escalation
+Validate & sanitize inputs
+Prevent SQL injection (parameterized queries ONLY)
+Protect against XSS
+Implement CSRF protection (if cookies used)
+Do not expose sensitive data
+Use environment variables for secrets
+--Database Design:
+users (id, username, email, password, role_id)
+roles (id, name)
+permissions (id, name)
+role_permissions (role_id, permission_id)
+--Output Requirements (STRICT FORMAT)
+Your response MUST include:
+Complete folder structure
+All backend and frontend code
+Middleware for:
+Authentication
+Authorization (RBAC)
+Explanation of how role & permission checks are enforced
+Step-by-step instructions to run the project
+

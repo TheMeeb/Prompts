@@ -6,8 +6,7 @@ Input Requirements:
 Backend: Node.js + Express
 Database: SQLite
 Feature: User Signup
-
-Expected Output Structure:
+--Expected Output Structure:
 project/
  ├── server/
  │    ├── app.js
@@ -40,7 +39,7 @@ router.post("/signup", async (req, res) => {
 });
 
 module.exports = router;
--------------------------------------------------------------------------
+--------------------------------
 --Key Expectations Demonstrated:
 Password hashing with bcrypt
 Input validation
@@ -68,8 +67,8 @@ router.post("/login", async (req, res) => {
 
   res.json({ token });
 });
--------------------------------------------------------------------------------
---Key Expectations Demonstrated:
+------------------------------
+Key Expectations Demonstrated:
 Secure password comparison
 JWT-based authentication
 No raw SQL concatenation
@@ -81,19 +80,19 @@ Create a complete authentication system with the following requirements:
 Use HTML, CSS, and JavaScript
 Create Login and Signup pages
 Use fetch API to communicate with backend
-Backend:
+--Backend:
 Use Node.js with Express
 Use SQLite as the database
-Features:
+--Features:
 User signup and login
 Password hashing using bcrypt
 Input validation
 Proper error handling
-Security:
+--Security:
 Prevent SQL injection (use parameterized queries)
 Store passwords securely (hashed)
 Use JWT or session-based authentication
-Database:
+--Database:
 Design a simple users table (id, username, email, password)
 
 --Output Requirements (Strict Format)
