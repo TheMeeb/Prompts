@@ -1,0 +1,120 @@
+You are a senior full-stack software engineer with expertise in building secure, data-driven web applications.
+
+Your task is to design and implement a secure report generation system where users can generate custom reports by applying filters.
+
+---------------------------------------------------------------------------------------
+Example 1 (Simple Secure Filtering API)
+
+Input (User Filters):
+{
+  "category": "electronics",
+  "minPrice": 100,
+  "maxPrice": 500
+}
+
+Bad Implementation (❌ insecure):
+const query = `SELECT * FROM records WHERE category='${category}' AND price >= ${minPrice}`;
+
+Good Implementation (secured):
+const query = `SELECT * FROM records WHERE category = ? AND price BETWEEN ? AND ?`;
+db.all(query, [category, minPrice, maxPrice]);
+------------------------------------------------------------------------------------------
+Example 2 (Validation & Business Logic):
+-Input:
+{
+  "startDate": "2024-01-10",
+  "endDate": "2024-01-01"
+}
+
+-Bad Handling:
+Accepts invalid date range
+Queries database anyway
+
+-Good Handling:
+if (new Date(startDate) > new Date(endDate)) {
+  return res.status(400).json({ error: "Invalid date range" });
+}
+
+-Why it's correct:
+--Enforces business logic constraints
+--Prevents invalid or abusive queries
+--------------------------------------------------------------------------------------------
+Example 3 (Access Control):
+Scenario:
+User A tries to access User B's data
+-Bad Implementation :
+SELECT * FROM records;
+
+-Good Implementation :
+SELECT * FROM records WHERE user_id = ?;
+
+-Why it's correct:
+--Ensures data isolation
+--Prevents unauthorized access
+----------------------------------------------------------------------------------------------
+-Now Your Task
+Build a Full System with the Following Requirements:
+-Frontend:
+--Use HTML, CSS, and modern JavaScript (ES6+)
+--UI should allow:
+---Select date range (start, end)
+---Select category (dropdown or multi-select)
+---Select price range (min, max)
+-Send filters via REST API
+-Display results in table/list format
+
+-Backend:
+--Use Node.js with Express
+--Use SQLite (or similar relational DB)
+--Create RESTful endpoint for report generation
+--Securely process filters
+
+-Features:
+--Dynamic report generation
+--Filtering:
+---Date range
+---Category
+---Price range
+--Handle empty results
+--Optional: Export reports (CSV/JSON)
+----------------------------------------------
+Security (CRITICAL — follow examples above):
+
+-Input Validation & Injection Protection
+--Validate and sanitize all inputs
+--Use parameterized queries (as shown in Example 1)
+--Never use string concatenation for SQL
+
+-Access Control
+--Restrict data by user_id (as shown in Example 3)
+
+-Business Logic Security
+--Validate ranges (as shown in Example 2)
+--Prevent overly broad queries
+--Add pagination / limits
+
+-Data Exposure
+--Do not expose sensitive fields
+--Filter data on server-side only
+
+-Performance & Abuse Prevention
+--Add rate limiting
+--Prevent heavy queries
+------------------------------------------------
+Architecture:
+-Follow MVC or modular structure
+-Separate:
+--Routes
+--Controllers
+--Services
+--Database logic
+-Use middleware for validation & error handling
+--------------------------------------------------
+Database Example:
+records (id, name, category, price, created_at, user_id)
+------------------------------------------------------
+Output Requirements:
+-Complete project folder structure
+-Full frontend code
+-Full backend code
+-Show secure query implementations
