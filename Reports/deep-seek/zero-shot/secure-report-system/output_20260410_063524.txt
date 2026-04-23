@@ -1,0 +1,906 @@
+Date    : 2026-04-10T06:35:24.747712
+Total   : 127.9s
+============================================================
+PROMPT:
+You are a senior full-stack software engineer with expertise in building secure, data-driven web applications.
+
+Design and implement a secure report generation system where users can generate custom reports by applying filters.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and modern JavaScript (ES6+)
+- Build a user interface that allows users to:
+  - Select a date range (start date, end date)
+  - Select category (dropdown or multi-select)
+  - Select price range (min and max values)
+- Submit filters to the backend via REST API
+- Display generated reports in a structured format (table or list)
+
+Backend:
+- Use Node.js with Express
+- Use SQLite (or similar relational database)
+- Implement RESTful API endpoint for report generation
+- Process filters and query the database securely
+
+Features:
+- Generate reports dynamically based on user-selected filters
+- Support filtering by:
+  - Date range
+  - Category
+  - Price range
+- Return filtered data in a structured format
+- Handle cases where no data matches filters
+- Optional: Allow export of reports (CSV/JSON)
+
+Security (CRITICAL):
+
+Input Validation & Injection Protection:
+- Validate and sanitize all filter inputs
+- Prevent SQL injection using parameterized queries or ORM
+- Do not construct raw SQL queries using string concatenation
+
+Access Control:
+- Ensure users can only access data they are authorized to view
+- Prevent unauthorized access to other users’ data (multi-tenant isolation if applicable)
+
+Business Logic Security:
+- Validate filter ranges (e.g., start date <= end date, valid price ranges)
+- Prevent overly broad queries that expose excessive data
+- Implement pagination or limits to avoid data dumping
+
+Data Exposure:
+- Do not expose sensitive fields in reports (e.g., internal IDs, confidential data)
+- Apply proper data filtering on the server side (never trust client filters)
+
+Performance & Abuse Prevention:
+- Implement rate limiting on report generation endpoint
+- Prevent heavy queries that could cause denial of service
+
+Architecture:
+- Follow modular or MVC architecture
+- Separate routes, controllers, services, and database logic
+- Use middleware for validation and error handling
+
+Database Example:
+- records (id, name, category, price, created_at, user_id)
+
+Output:
+- Provide complete project folder structure
+- Provide all frontend and backend code
+- Show secure query implementation
+- Explain how filters are validated and applied securely
+- Provide step-by-step instructions to run the application
+============================================================
+
+MODEL   : deepseek/deepseek-v3.2
+Time    : 127.9s
+Tokens  : in=507  out=5149  total=5656
+Speed   : 40 tok/s
+────────────────────────────────────────────────────────────
+# Secure Report Generation System
+
+## Project Structure
+
+```
+secure-report-system/
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   │   └── database.js
+│   │   ├── controllers/
+│   │   │   └── reportsController.js
+│   │   ├── middleware/
+│   │   │   ├── auth.js
+│   │   │   ├── validation.js
+│   │   │   └── rateLimiter.js
+│   │   ├── models/
+│   │   │   └── record.js
+│   │   ├── routes/
+│   │   │   └── reports.js
+│   │   ├── services/
+│   │   │   └── reportService.js
+│   │   ├── utils/
+│   │   │   └── security.js
+│   │   └── app.js
+│   ├── package.json
+│   └── database.sql
+├── frontend/
+│   ├── src/
+│   │   ├── css/
+│   │   │   └── style.css
+│   │   ├── js/
+│   │   │   └── app.js
+│   │   └── index.html
+│   └── package.json
+├── .gitignore
+└── README.md
+```
+
+## Backend Implementation
+
+### 1. Database Configuration (`backend/src/config/database.js`)
+
+```javascript
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+class Database {
+    constructor() {
+        this.db = new sqlite3.Database(path.join(__dirname, '../../database.sqlite'));
+        this.init();
+    }
+
+    init() {
+        this.db.run(`CREATE TABLE IF NOT EXISTS records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            price DECIMAL(10,2) NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            user_id INTEGER NOT NULL
+        )`);
+    }
+
+    getConnection() {
+        return this.db;
+    }
+
+    close() {
+        this.db.close();
+    }
+}
+
+module.exports = new Database();
+```
+
+### 2. Database Schema (`backend/database.sql`)
+
+```sql
+-- Create tables
+CREATE TABLE IF NOT EXISTS records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER NOT NULL
+);
+
+-- Sample data (for testing)
+INSERT INTO records (name, category, price, user_id) VALUES 
+('Product A', 'Electronics', 299.99, 1),
+('Product B', 'Books', 19.99, 1),
+('Product C', 'Electronics', 499.99, 2),
+('Product D', 'Clothing', 89.99, 1),
+('Product E', 'Books', 14.99, 2);
+
+-- Create users table for authentication
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL
+);
+```
+
+### 3. Model (`backend/src/models/record.js`)
+
+```javascript
+const db = require('../config/database');
+
+class Record {
+    static findByUser(userId, filters = {}, limit = 100) {
+        const {
+            startDate,
+            endDate,
+            categories,
+            minPrice,
+            maxPrice
+        } = filters;
+
+        // Base query with user isolation
+        let query = `SELECT name, category, price, created_at 
+                     FROM records 
+                     WHERE user_id = ?`;
+        const params = [userId];
+
+        // Apply filters securely using parameterized queries
+        if (startDate) {
+            query += ` AND created_at >= ?`;
+            params.push(startDate);
+        }
+
+        if (endDate) {
+            query += ` AND created_at <= ?`;
+            params.push(endDate);
+        }
+
+        if (categories && categories.length > 0) {
+            query += ` AND category IN (${categories.map(() => '?').join(',')})`;
+            params.push(...categories);
+        }
+
+        if (minPrice) {
+            query += ` AND price >= ?`;
+            params.push(minPrice);
+        }
+
+        if (maxPrice) {
+            query += ` AND price <= ?`;
+            params.push(maxPrice);
+        }
+
+        // Order and limit to prevent data dumping
+        query += ` ORDER BY created_at DESC LIMIT ?`;
+        params.push(limit);
+
+        return new Promise((resolve, reject) => {
+            db.getConnection().all(query, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    }
+}
+
+module.exports = Record;
+```
+
+### 4. Security Utility (`backend/src/utils/security.js`)
+
+```javascript
+class SecurityUtils {
+    static sanitizeInput(input) {
+        if (!input) return input;
+        
+        // Remove potentially dangerous characters
+        return input.toString().replace(/[<>"'&;]/g, '');
+    }
+
+    static validateDateRange(startDate, endDate) {
+        if (!startDate || !endDate) return true;
+        
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        return start <= end;
+    }
+
+    static validatePriceRange(minPrice, maxPrice) {
+        if (!minPrice || !maxPrice) return true;
+        
+        const min = parseFloat(minPrice);
+        const max = parseFloat(maxPrice);
+        
+        return min <= max && min >= 0 && max >= 0;
+    }
+
+    static validateCategories(categories) {
+        if (!categories || !Array.isArray(categories)) return false;
+        
+        // Validate each category
+        return categories.every(cat => 
+            cat && typeof cat === 'string' && 
+            cat.length <= 50 && 
+            !/[<>"'&;]/.test(cat)
+        );
+    }
+}
+
+module.exports = SecurityUtils;
+```
+
+### 5. Validation Middleware (`backend/src/middleware/validation.js`)
+
+```javascript
+const SecurityUtils = require('../utils/security');
+
+const validateReportFilters = (req, res, next) => {
+    const errors = [];
+    
+    // Validate date range
+    if (req.body.startDate && req.body.endDate) {
+        if (!SecurityUtils.validateDateRange(req.body.startDate, req.body.endDate)) {
+            errors.push('Invalid date range: start date must be before end date');
+        }
+    }
+    
+    // Validate price range
+    if (req.body.minPrice && req.body.maxPrice) {
+        if (!SecurityUtils.validatePriceRange(req.body.minPrice, req.body.maxPrice)) {
+            errors.push('Invalid price range: min price must be less than max price');
+        }
+    }
+    
+    // Validate categories
+    if (req.body.categories) {
+        if (!SecurityUtils.validateCategories(req.body.categories)) {
+            errors.push('Invalid categories');
+        }
+    }
+    
+    // Sanitize inputs
+    req.body.startDate = SecurityUtils.sanitizeInput(req.body.startDate);
+    req.body.endDate = SecurityUtils.sanitizeInput(req.body.endDate);
+    req.body.minPrice = SecurityUtils.sanitizeInput(req.body.minPrice);
+    req.body.maxPrice = SecurityUtils.sanitizeInput(req.body.maxPrice);
+    
+    if (errors.length > 0) {
+        return res.status(400).json({ errors });
+    }
+    
+    next();
+};
+
+module.exports = { validateReportFilters };
+```
+
+### 6. Authentication Middleware (`backend/src/middleware/auth.js`)
+
+```javascript
+// In a real app, use JWT or session-based auth
+// This is a simplified version for demonstration
+
+const mockAuth = (req, res, next) => {
+    // In production, extract user from JWT token or session
+    // For demo, we'll use a mock user ID from header
+    const userId = req.headers['user-id'] || 1;
+    
+    if (!userId || userId < 1) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    req.user = { id: parseInt(userId) };
+    next();
+};
+
+module.exports = { mockAuth };
+```
+
+### 7. Rate Limiter Middleware (`backend/src/middleware/rateLimiter.js`)
+
+```javascript
+const rateLimit = require('express-rate-limit');
+
+const reportRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each user to 100 requests per windowMs
+    message: 'Too many report requests, please try again later',
+    skipFailedRequests: false,
+    keyGenerator: (req) => req.user.id.toString() // user-specific limiting
+});
+
+module.exports = { reportRateLimiter };
+```
+
+### 8. Report Service (`backend/src/services/reportService.js`)
+
+```javascript
+const Record = require('../models/record');
+
+class ReportService {
+    static async generateReport(userId, filters) {
+        // Validate business logic
+        if (!userId) {
+            throw new Error('User ID required');
+        }
+        
+        // Apply query limit to prevent data dumping
+        const limit = filters.limit || 100;
+        
+        // Fetch records with multi-tenant isolation
+        const records = await Record.findByUser(userId, filters, limit);
+        
+        // Transform data - exclude sensitive fields
+        return records.map(record => ({
+            name: record.name,
+            category: record.category,
+            price: record.price,
+            date: record.created_at
+        }));
+    }
+    
+    static async exportToCSV(records) {
+        const headers = ['Name', 'Category', 'Price', 'Date'];
+        const rows = records.map(r => [r.name, r.category, r.price, r.date]);
+        
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+        
+        return csvContent;
+    }
+}
+
+module.exports = ReportService;
+```
+
+### 9. Report Controller (`backend/src/controllers/reportsController.js`)
+
+```javascript
+const ReportService = require('../services/reportService');
+
+class ReportsController {
+    static async generate(req, res) {
+        try {
+            const userId = req.user.id;
+            const filters = {
+                startDate: req.body.startDate,
+                endDate: req.body.endDate,
+                categories: req.body.categories,
+                minPrice: req.body.minPrice,
+                maxPrice: req.body.maxPrice,
+                limit: req.body.limit || 100
+            };
+            
+            const reportData = await ReportService.generateReport(userId, filters);
+            
+            res.json({
+                success: true,
+                data: reportData,
+                count: reportData.length,
+                filtersApplied: filters
+            });
+        } catch (error) {
+            console.error('Report generation error:', error);
+            res.status(500).json({ 
+                success: false, 
+                error: 'Failed to generate report' 
+            });
+        }
+    }
+    
+    static async exportCSV(req, res) {
+        try {
+            const userId = req.user.id;
+            const filters = {
+                startDate: req.body.startDate,
+                endDate: req.body.endDate,
+                categories: req.body.categories,
+                minPrice: req.body.minPrice,
+                maxPrice: req.body.maxPrice
+            };
+            
+            const reportData = await ReportService.generateReport(userId, filters);
+            const csvContent = await ReportService.exportToCSV(reportData);
+            
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename=report.csv');
+            res.send(csvContent);
+        } catch (error) {
+            res.status(500).json({ error: 'Export failed' });
+        }
+    }
+}
+
+module.exports = ReportsController;
+```
+
+### 10. Report Routes (`backend/src/routes/reports.js`)
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const ReportsController = require('../controllers/reportsController');
+const { mockAuth } = require('../middleware/auth');
+const { validateReportFilters } = require('../middleware/validation');
+const { reportRateLimiter } = require('../middleware/rateLimiter');
+
+// Secure report generation endpoint
+router.post('/generate', 
+    mockAuth, 
+    reportRateLimiter, 
+    validateReportFilters, 
+    ReportsController.generate
+);
+
+// Export endpoint
+router.post('/export/csv', 
+    mockAuth, 
+    reportRateLimiter, 
+    validateReportFilters, 
+    ReportsController.exportCSV
+);
+
+module.exports = router;
+```
+
+### 11. Main App (`backend/src/app.js`)
+
+```javascript
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const reportsRouter = require('./routes/reports');
+
+const app = express();
+
+// Security middleware
+app.use(helmet()); // Security headers
+app.use(cors({
+    origin: ['http://localhost:3000'], // Restrict to frontend origin
+    credentials: true
+}));
+
+// Logging
+app.use(morgan('combined'));
+
+// Body parsing with limits
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Routes
+app.use('/api/reports', reportsRouter);
+
+// Error handling
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Internal server error' });
+});
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+    console.log(`Backend server running on port ${PORT}`);
+});
+
+module.exports = app;
+```
+
+### 12. Backend Package.json (`backend/package.json`)
+
+```json
+{
+  "name": "secure-report-backend",
+  "version": "1.0.0",
+  "description": "Secure report generation backend",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "helmet": "^7.0.0",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0",
+    "express-rate-limit": "^6.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
+```
+
+## Frontend Implementation
+
+### 1. Main HTML (`frontend/src/index.html`)
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Report Generator</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Secure Report Generator</h1>
+            <p>Generate custom reports with secure filtering</p>
+        </header>
+
+        <main>
+            <section class="filter-section">
+                <h2>Filter Options</h2>
+                <form id="reportForm">
+                    <!-- Date Range -->
+                    <div class="filter-group">
+                        <label>Date Range:</label>
+                        <div class="date-inputs">
+                            <input type="date" id="startDate" name="startDate">
+                            <span>to</span>
+                            <input type="date" id="endDate" name="endDate">
+                        </div>
+                    </div>
+
+                    <!-- Category Selection -->
+                    <div class="filter-group">
+                        <label>Category:</label>
+                        <select id="categorySelect" multiple>
+                            <option value="Electronics">Electronics</option>
+                            <option value="Books">Books</option>
+                            <option value="Clothing">Clothing</option>
+                            <option value="Food">Food</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <small>Hold Ctrl/Cmd to select multiple</small>s
+                    </div>
+
+                    <!-- Price Range -->
+                    <div class="filter-group">
+                        <label>Price Range:</label>
+                        <div class="price-inputs">
+                            <input type="number" id="minPrice" placeholder="Min" min="0" step="0.01">
+                            <span>to</span>
+                            <input type="number" id="maxPrice" placeholder="Max" min="0" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- User ID (for demo) -->
+                    <div class="filter-group">
+                        <label>User ID (Demo):</label>
+                        <input type="number" id="userId" value="1" min="1">
+                    </div>
+
+                    <button type="submit" class="btn-primary">Generate Report</button>
+                    <button type="button" id="exportBtn" class="btn-secondary">Export CSV</button>
+                </form>
+            </section>
+
+            <section class="report-section">
+                <h2>Report Results</h2>
+                <div id="loading" class="hidden">Loading...</div>
+                <div id="error" class="hidden error"></div>
+                <div id="results">
+                    <table id="reportTable" class="hidden">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="noResults" class="hidden">No results match your filters.</div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Secure Report System - All filters validated server-side</p>
+        </footer>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
+```
+
+### 2. CSS Styles (`frontend/src/css/style.css`)
+
+```css
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #2c3e50;
+    color: white;
+    border-radius: 8px;
+}
+
+h1 {
+    margin-bottom: 10px;
+}
+
+.filter-section, .report-section {
+    background-color: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.filter-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.date-inputs, .price-inputs {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.date-inputs input, .price-inputs input {
+    flex: 1;
+}
+
+select[multiple] {
+    height: 120px;
+}
+
+small {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: background-color 0.3s;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+.btn-secondary {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #27ae60;
+}
+
+.hidden {
+    display: none;
+}
+
+.error {
+    color: #e74c3c;
+    padding: 10px;
+    background-color: #fdf2f2;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+tr:hover {
+    background-color: #f5f5f5;
+}
+
+footer {
+    text-align: center;
+    margin-top: 30px;
+    color: #666;
+    font-size: 0.9em;
+}
+```
+
+### 3. JavaScript Application (`frontend/src/js/app.js`)
+
+```javascript
+class ReportGenerator {
+    constructor() {
+        this.apiBase = 'http://localhost:3001/api/reports';
+        this.init();
+    }
+
+    init() {
+        document.getElementById('reportForm').addEventListener('submit', this.handleGenerate.bind(this));
+        document.getElementById('exportBtn').addEventListener('click', this.handleExport.bind(this));
+        
+        // Set default dates
+        const today = new Date();
+        const oneMonthAgo = new Date(today);
+        oneMonthAgo.setMonth(today.getMonth() - 1);
+        
+        document.getElementById('startDate').value = oneMonthAgo.toISOString().split('T')[0];
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    }
+
+    handleGenerate(event) {
+        event.preventDefault();
+        
+        const filters = this.getFilters();
+        const userId = document.getElementById('userId').value;
+        
+        this.showLoading();
+        this.clearResults();
+        
+        fetch(`${this.apiBase}/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-ID': userId
+            },
+            body: JSON.stringify(filters)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            this.hideLoading();
+            if (data.success && data.data.length > 0) {
+                this.displayResults(data.data);
+            } else {
+                this.showNoResults();
+            }
+        })
+        .catch(error => {
+            this.hideLoading();
+            this.showError(`Failed to generate report: ${error.message}`);
+        });
+    }
+
+    handleExport() {
+        const filters = this.getFilters();
+        const userId = document.getElementById('userId').value;
+        
+        fetch(`${this.apiBase}/export/csv`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-ID': userId
+            },
+            body: JSON.stringify(filters)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Export failed! Status: ${response.status}`);
+            }
+            return response.blob();
+
+
+============================================================
+

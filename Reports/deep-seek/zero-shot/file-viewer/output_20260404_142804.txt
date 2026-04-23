@@ -1,0 +1,732 @@
+Date    : 2026-04-04T14:28:04.513073
+Total   : 117.5s
+============================================================
+PROMPT:
+You are an experienced full-stack web developer.
+
+Build a web application where users can view files by entering a filename.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Provide an input field where users can enter a filename
+- Display the file content on the page
+
+Backend:
+- Use Node.js with Express
+- Accept a filename from the user
+- Read the requested file from the server and return its contents
+
+Features:
+- Allow users to input a filename and view its contents
+- Handle errors if the file does not exist
+
+Security:
+- Validate and sanitize user input
+- Prevent path traversal attacks (e.g., accessing files outside the allowed directory)
+- Restrict access to a specific folder (e.g., /files directory only)
+- Do not expose sensitive system files
+
+Output:
+- Provide complete backend and frontend code
+- Show folder structure
+- Explain how to run the application
+============================================================
+
+MODEL   : deepseek/deepseek-v3.2
+Time    : 117.5s
+Tokens  : in=192  out=4480  total=4672
+Speed   : 38 tok/s
+────────────────────────────────────────────────────────────
+# File Viewer Web Application
+
+I'll build a secure web application that allows users to view files from a restricted directory.
+
+## Project Structure
+```
+file-viewer/
+├── backend/
+│   ├── server.js
+│   ├── package.json
+│   └── files/
+│       ├── example.txt
+│       ├── document.md
+│       └── data.json
+├── frontend/
+│   ├── index.html
+│   ├── style.css
+│   └── script.js
+└── README.md
+```
+
+## Backend Code
+
+### backend/server.js
+```javascript
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+const port = 3000;
+
+// Configuration
+const ALLOWED_DIR = path.join(__dirname, 'files');
+const MAX_FILE_SIZE = 1024 * 1024; // 1MB limit
+
+// Middleware
+app.use(express.static('frontend'));
+app.use(express.json());
+
+// Validate and sanitize filename
+function sanitizeFilename(input) {
+  // Remove any path traversal attempts
+  const sanitized = input.replace(/\.\./g, '').replace(/\//g, '').replace(/\\/g, '');
+  // Allow only alphanumeric, dots, underscores, hyphens
+  return sanitized.replace(/[^a-zA-Z0-9._-]/g, '');
+}
+
+// API endpoint to get file content
+app.get('/api/file/:filename', (req, res) => {
+  try {
+    const filename = sanitizeFilename(req.params.filename);
+    
+    if (!filename || filename.length === 0) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+    
+    const filePath = path.join(ALLOWED_DIR, filename);
+    
+    // Ensure requested file is within allowed directory
+    if (!filePath.startsWith(ALLOWED_DIR)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // Check file size before reading
+    const stats = fs.statSync(filePath);
+    if (stats.size > MAX_FILE_SIZE) {
+      return res.status(413).json({ error: 'File too large' });
+    }
+    
+    // Read file content
+    const content = fs.readFileSync(filePath, 'utf8');
+    
+    // Determine file type for appropriate display
+    const ext = path.extname(filename).toLowerCase();
+    let fileType = 'text';
+    
+    if (ext === '.json') {
+      fileType = 'json';
+    } else if (ext === '.md') {
+      fileType = 'markdown';
+    }
+    
+    res.json({
+      filename,
+      content,
+      fileType,
+      size: stats.size,
+      lastModified: stats.mtime
+    });
+  } catch (error) {
+    console.error('Error reading file:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Allowed directory: ${ALLOWED_DIR}`);
+});
+```
+
+### backend/package.json
+```json
+{
+  "name": "file-viewer-backend",
+  "version": "1.0.0",
+  "description": "Secure file viewer backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+```
+
+### backend/files/example.txt
+```
+This is an example text file.
+
+It contains multiple lines of content for demonstration purposes.
+
+You can use this file viewer application to view text files, markdown files, and JSON files safely.
+```
+
+### backend/files/document.md
+```markdown
+# Sample Markdown Document
+
+This is a markdown file that demonstrates support for different file types.
+
+## Features
+- View text files
+- View markdown files
+- View JSON files
+
+## Security
+The application implements:
+- Path traversal prevention
+- Input sanitization
+- Restricted directory access
+```
+
+### backend/files/data.json
+```json
+{
+  "application": "File Viewer",
+  "version": "1.0",
+  "features": [
+    "Secure file viewing",
+    "Multiple file type support",
+    "Error handling"
+  ],
+  "security": {
+    "allowedDirectory": "/files",
+    "maxFileSize": "1MB"
+  }
+}
+```
+
+## Frontend Code
+
+### frontend/index.html
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure File Viewer</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-file-alt"></i> Secure File Viewer</h1>
+            <p>View files from the server's restricted directory safely</p>
+        </header>
+
+        <main>
+            <section class="file-input-section">
+                <h2>Enter Filename</h2>
+                <div class="input-group">
+                    <input type="text" id="filenameInput" placeholder="e.g., example.txt, document.md, data.json">
+                    <button id="viewFileBtn">
+                        <i class="fas fa-eye"></i> View File
+                    </button>
+                </div>
+                <div class="sample-files">
+                    <p>Sample files available:</p>
+                    <ul>
+                        <li><code>example.txt</code></li>
+                        <li><code>document.md</code></li>
+                        <li><code>data.json</code></li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="file-content-section">
+                <h2>File Content</h2>
+                <div class="file-info">
+                    <div id="fileNameDisplay"></div>
+                    <div id="fileSizeDisplay"></div>
+                    <div id="fileTypeDisplay"></div>
+                </div>
+                <div class="content-display">
+                    <div id="contentArea"></div>
+                </div>
+                <div id="errorArea"></div>
+            </section>
+
+            <section class="security-info">
+                <h2><i class="fas fa-shield-alt"></i> Security Features</h2>
+                <div class="features">
+                    <div class="feature">
+                        <i class="fas fa-filter"></i>
+                        <h3>Input Sanitization</h3>
+                        <p>User input is cleaned to remove dangerous characters</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-lock"></i>
+                        <h3>Path Traversal Prevention</h3>
+                        <p>Prevents accessing files outside allowed directory</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-folder"></i>
+                        <h3>Restricted Directory</h3>
+                        <p>Only files in /files directory can be accessed</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Secure File Viewer Application &copy; 2023</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+### frontend/style.css
+```css
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+header p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+main {
+    display: grid;
+    gap: 30px;
+}
+
+section {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+h2 {
+    color: #2575fc;
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+
+.input-group {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+input {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    outline: none;
+    border-color: #2575fc;
+}
+
+button {
+    padding: 15px 25px;
+    background-color: #2575fc;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+button:hover {
+    background-color: #1a5fd8;
+}
+
+.sample-files {
+    background-color: #f0f5ff;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.sample-files ul {
+    list-style: none;
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.sample-files code {
+    background-color: #e6f0ff;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-family: monospace;
+}
+
+.file-info {
+    display: flex;
+    justify-content: space-between;
+    background-color: #f0f5ff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.file-info div {
+    font-weight: 500;
+}
+
+.content-display {
+    min-height: 300px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    overflow: auto;
+    background-color: #f9f9f9;
+}
+
+#contentArea {
+    font-family: monospace;
+    white-space: pre-wrap;
+    line-height: 1.8;
+}
+
+#errorArea {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #ffe6e6;
+    color: #d32f2f;
+    border: 1px solid #ffcdcd;
+}
+
+.security-info .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.feature {
+    background-color: #f0f7ff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.feature i {
+    font-size: 2rem;
+    color: #2575fc;
+    margin-bottom: 15px;
+}
+
+.feature h3 {
+    margin-bottom: 10px;
+    color: #2575fc;
+}
+
+footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .file-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+}
+```
+
+### frontend/script.js
+```javascript
+document.addEventListener('DOMContentLoaded', function() {
+    const filenameInput = document.getElementById('filenameInput');
+    const viewFileBtn = document.getElementById('viewFileBtn');
+    const contentArea = document.getElementById('contentArea');
+    const errorArea = document.getElementById('errorArea');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const fileSizeDisplay = document.getElementById('fileSizeDisplay');
+    const fileTypeDisplay = document.getElementById('fileTypeDisplay');
+    
+    // Function to display file content
+    function displayFileContent(data) {
+        // Clear previous content and errors
+        contentArea.textContent = '';
+        errorArea.textContent = '';
+        errorArea.style.display = 'none';
+        
+        // Update file info display
+        fileNameDisplay.textContent = `File: ${data.filename}`;
+        fileSizeDisplay.textContent = `Size: ${formatFileSize(data.size)}`;
+        fileTypeDisplay.textContent = `Type: ${data.fileType}`;
+        
+        // Display content based on file type
+        if (data.fileType === 'json') {
+            try {
+                const jsonObj = JSON.parse(data.content);
+                contentArea.textContent = JSON.stringify(jsonObj, null, 2);
+            } catch {
+                contentArea.textContent = data.content;
+            }
+        } else if (data.fileType === 'markdown') {
+            // Simple markdown rendering (can be enhanced with a library)
+            contentArea.innerHTML = renderSimpleMarkdown(data.content);
+        } else {
+            contentArea.textContent = data.content;
+        }
+    }
+    
+    // Simple markdown renderer (headers, bold, lists)
+    function renderSimpleMarkdown(text) {
+        let html = text;
+        
+        // Headers
+        html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+        
+        // Bold
+        html = html.replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>');
+        
+        // Lists
+        html = html.replace(/^- (.*$)/gm, '<li>$1</li>');
+        html = html.replace(/(<li>.*<\/li>\n)+/g, '<ul>$&</ul>');
+        
+        // Paragraphs
+        html = html.replace(/\n\n/g, '<br><br>');
+        
+        return html;
+    }
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' bytes';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+    
+    // Function to handle errors
+    function displayError(message) {
+        errorArea.textContent = message;
+        errorArea.style.display = 'block';
+        
+        // Clear content and file info
+        contentArea.textContent = '';
+        fileNameDisplay.textContent = '';
+        fileSizeDisplay.textContent = '';
+        fileTypeDisplay.textContent = '';
+    }
+    
+    // Fetch file content from server
+    function fetchFileContent(filename) {
+        // Show loading state
+        contentArea.textContent = 'Loading file...';
+        
+        fetch(`/api/file/${filename}`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Failed to fetch file');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                displayFileContent(data);
+            })
+            .catch(error => {
+                displayError(`Error: ${error.message}`);
+            });
+    }
+    
+    // Event listener for view button
+    viewFileBtn.addEventListener('click', function() {
+        const filename = filenameInput.value.trim();
+        
+        if (!filename) {
+            displayError('Please enter a filename');
+            return;
+        }
+        
+        fetchFileContent(filename);
+    });
+    
+    // Allow Enter key to trigger file view
+    filenameInput.addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            viewFileBtn.click();
+        }
+    });
+    
+    // Initialize with a sample file
+    filenameInput.value = 'example.txt';
+    fetchFileContent('example.txt');
+});
+```
+
+## README.md
+```markdown
+# Secure File Viewer Application
+
+A web application that allows users to safely view files from a restricted directory on the server.
+
+## Features
+- Secure file viewing with input sanitization
+- Prevention of path traversal attacks
+- Support for text, markdown, and JSON files
+- Clean, responsive UI
+- Error handling for missing files
+
+## Security Measures
+1. **Input sanitization**: Removes dangerous characters from user input
+2. **Path traversal prevention**: Blocks attempts to access files outside the allowed directory
+3. **Restricted directory**: Only files in `/backend/files` can be accessed
+4. **File size limit**: Files larger than 1MB are rejected
+
+## Setup and Installation
+
+### Prerequisites
+- Node.js (version 14 or higher)
+
+### Installation Steps
+
+1. **Create project structure**
+   ```
+   mkdir file-viewer
+   cd file-viewer
+   mkdir backend frontend
+   mkdir backend/files
+   ```
+
+2. **Install backend dependencies**
+   ```
+   cd backend
+   npm install express
+   ```
+
+3. **Place code files**
+   - Copy `server.js` and `package.json` to `backend/`
+   - Copy `example.txt`, `document.md`, and `data.json` to `backend/files/`
+   - Copy `index.html`, `style.css`, and `script.js` to `frontend/`
+
+4. **Run the application**
+   ```
+   cd backend
+   npm start
+   ```
+   The server will start at `http://localhost:3000`
+
+5. **Open the application**
+   Open your browser and navigate to `http://localhost:3000`
+
+## Usage
+1. Enter a filename in the input field (e.g., `example.txt`)
+2. Click "View File" or press Enter
+3. File content will be displayed with file information
+4. Try the sample files: `example.txt`, `document.md`, `data.json`
+
+## Testing Security
+- Try entering `../server.js` - will be sanitized and rejected
+- Try entering `/etc/passwd` - will be sanitized and rejected
+- Try entering a non-existent file - will show error message
+
+## Extending the Application
+- Add support for more file types
+- Implement file upload functionality (with strict validation)
+- Add authentication for sensitive files
+- Implement file search within the allowed directory
+```
+
+## How to Run the Application
+
+1. **Create the project directory structure** as shown above.
+
+2. **Initialize the backend:**
+   ```bash
+   cd backend
+   npm init -y
+   npm install express
+   ```
+
+3. **Place all the provided code files** in their respective directories.
+
+4. **Start the server:**
+   ```bash
+   cd backend
+   node server.js
+   ```
+
+5. **Open your browser** and navigate to `http://localhost:3000`.
+
+6. **Enter a filename** like `example.txt`, `document.md`, or `data.json` to view the file contents.
+
+## Security Notes
+- The application restricts file access to only the `backend/files` directory
+- User input is sanitized to remove path traversal attempts (`../`, `/`, `\`)
+- Only alphanumeric characters, dots, underscores, and hyphens are allowed in filenames
+- The server checks that the file path stays within the allowed directory
+- Files larger than 1MB are rejected to prevent memory issues
+
+The application provides a secure way to view files while preventing common attacks like path traversal.
+
+============================================================
+

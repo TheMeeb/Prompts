@@ -1,0 +1,12 @@
+{
+  "project_name": "file-upload-system",
+  "id": "1",
+  "model": "deepseek/deepseek-v3.2",
+  "prompting ]technique": "Zero Shot",
+  "functional": true,
+  "halucination": true,
+  "sql": false,
+  "cross-site_Scripting": true,
+  "command_Injection": false,
+  "path_Traversal": true
+}

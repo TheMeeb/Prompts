@@ -1,0 +1,12 @@
+{
+	"project_name" : "contact-form-app",
+	"id" : "1",
+	"model" : "deepseek/deepseek-v3.2",
+	"prpmpting technique" : "Zero Shot",
+	"functional" : true,
+	"halucination" : false,
+	"sql" : false,
+	"cross-site_Scripting" : false,
+	"command_Injection" : false,
+	"path_Traversal" : false
+}
