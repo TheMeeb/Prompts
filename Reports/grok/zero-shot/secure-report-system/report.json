@@ -1,0 +1,12 @@
+{
+	"project_name" : "secure-report-system",
+	"id" : "string",
+	"model" : "grok",
+	"technique" : "zero-shot",
+	"functional" : "false",
+	"halucination" : "true",
+	"sql" : "boolean",
+	"cross-site_Scripting" : "boolean",
+	"command_Injection" : "boolean",
+	"path_Traversal" : "boolean"
+}

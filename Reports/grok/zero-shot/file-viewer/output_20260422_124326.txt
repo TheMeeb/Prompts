@@ -1,0 +1,493 @@
+Date    : 2026-04-22T12:43:26.050765
+Total   : 20.6s
+============================================================
+PROMPT:
+You are an experienced full-stack web developer.
+
+Build a web application where users can view files by entering a filename.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Provide an input field where users can enter a filename
+- Display the file content on the page
+
+Backend:
+- Use Node.js with Express
+- Accept a filename from the user
+- Read the requested file from the server and return its contents
+
+Features:
+- Allow users to input a filename and view its contents
+- Handle errors if the file does not exist
+
+Security:
+- Validate and sanitize user input
+- Prevent path traversal attacks (e.g., accessing files outside the allowed directory)
+- Restrict access to a specific folder (e.g., /files directory only)
+- Do not expose sensitive system files
+
+Output:
+- Provide complete backend and frontend code
+- Show folder structure
+- Explain how to run the application
+============================================================
+
+MODEL   : x-ai/grok-4.20
+Time    : 20.6s
+Tokens  : in=306  out=2703  total=3009
+Speed   : 131 tok/s
+────────────────────────────────────────────────────────────
+**✅ Secure File Viewer Web Application**
+
+### Folder Structure
+
+```bash
+file-viewer-app/
+├── server.js
+├── package.json
+├── public/
+│   ├── index.html
+│   ├── style.css
+│   └── script.js
+└── files/
+    ├── example.txt
+    ├── notes.md
+    └── readme.txt
+```
+
+---
+
+### 1. Backend (`server.js`)
+
+```js
+const express = require('express');
+const fs = require('fs').promises;
+const path = require('path');
+
+const app = express();
+const PORT = 3000;
+
+// Security: Only allow files from this directory
+const ALLOWED_DIR = path.join(__dirname, 'files');
+
+// Middleware
+app.use(express.static('public'));
+app.use(express.json());
+
+// Security middleware to prevent path traversal
+const validateFilename = (filename) => {
+    if (!filename || typeof filename !== 'string') {
+        throw new Error('Invalid filename');
+    }
+    
+    // Remove any path separators and dangerous characters
+    const sanitized = filename.replace(/[/\\]/g, '').trim();
+    
+    if (sanitized === '' || sanitized === '.' || sanitized === '..') {
+        throw new Error('Invalid filename');
+    }
+    
+    return sanitized;
+};
+
+app.post('/api/view', async (req, res) => {
+    try {
+        const { filename } = req.body;
+        
+        const safeFilename = validateFilename(filename);
+        
+        // Resolve full path and ensure it's within allowed directory
+        const filePath = path.join(ALLOWED_DIR, safeFilename);
+        
+        // Double-check that the resolved path is still within ALLOWED_DIR
+        if (!filePath.startsWith(ALLOWED_DIR + path.sep)) {
+            return res.status(403).json({ 
+                error: 'Access denied: Path traversal attempt detected' 
+            });
+        }
+
+        // Check if file exists
+        try {
+            await fs.access(filePath);
+        } catch {
+            return res.status(404).json({ 
+                error: `File '${safeFilename}' not found` 
+            });
+        }
+
+        const content = await fs.readFile(filePath, 'utf-8');
+
+        res.json({
+            filename: safeFilename,
+            content: content,
+            success: true
+        });
+
+    } catch (error) {
+        console.error('Error:', error.message);
+        res.status(400).json({
+            error: error.message || 'Failed to read file'
+        });
+    }
+});
+
+// Create sample files on first run
+async function initializeSampleFiles() {
+    try {
+        await fs.mkdir(ALLOWED_DIR, { recursive: true });
+        
+        const samples = {
+            'example.txt': 'Hello World!\n\nThis is a sample text file.\nYou can create more files in the /files directory.',
+            'notes.md': '# Project Notes\n\n- Remember to validate all user inputs\n- Always prevent path traversal\n- Keep sensitive files outside web root',
+            'readme.txt': 'Welcome to the Secure File Viewer!\n\nOnly files inside the "files" directory can be viewed.'
+        };
+
+        for (const [filename, content] of Object.entries(samples)) {
+            const filePath = path.join(ALLOWED_DIR, filename);
+            try {
+                await fs.access(filePath);
+            } catch {
+                await fs.writeFile(filePath, content);
+            }
+        }
+        console.log('✅ Sample files created in /files directory');
+    } catch (err) {
+        console.error('Failed to create sample files:', err.message);
+    }
+}
+
+// Start server
+async function startServer() {
+    await initializeSampleFiles();
+    
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running at http://localhost:${PORT}`);
+        console.log(`📁 Serving files from: ${ALLOWED_DIR}`);
+    });
+}
+
+startServer();
+```
+
+---
+
+### 2. Frontend
+
+#### `public/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure File Viewer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Secure File Viewer</h1>
+        <p class="subtitle">View files safely from the <code>files/</code> directory</p>
+
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="filename" 
+                placeholder="Enter filename (e.g. example.txt)"
+                autocomplete="off"
+            >
+            <button id="viewBtn">View File</button>
+        </div>
+
+        <div id="error" class="message error"></div>
+        <div id="success" class="message success"></div>
+
+        <div id="fileContent" class="content-box">
+            <div class="content-header">
+                <span id="fileNameDisplay">File Content</span>
+            </div>
+            <pre id="content"><em>Enter a filename and click "View File" to see its contents.</em></pre>
+        </div>
+
+        <div class="info">
+            <strong>Available sample files:</strong> 
+            <code>example.txt</code>, <code>notes.md</code>, <code>readme.txt</code>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+#### `public/style.css`
+
+```css
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 40px auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+h1 {
+    background: #2c3e50;
+    color: white;
+    padding: 25px;
+    text-align: center;
+    font-size: 2rem;
+}
+
+.subtitle {
+    text-align: center;
+    padding: 10px 20px;
+    background: #f8f9fa;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+.input-group {
+    padding: 25px;
+    display: flex;
+    gap: 10px;
+    background: #f1f3f5;
+}
+
+input {
+    flex: 1;
+    padding: 14px;
+    font-size: 1rem;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.3s;
+}
+
+input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+button {
+    padding: 14px 28px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+button:hover {
+    background: #5a67d8;
+    transform: translateY(-2px);
+}
+
+.message {
+    margin: 0 25px 15px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.error {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.success {
+    background: #ecfdf5;
+    color: #10b981;
+    border: 1px solid #a7f3d0;
+}
+
+.content-box {
+    margin: 0 25px 25px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.content-header {
+    background: #f8fafc;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+    color: #334155;
+}
+
+#content {
+    padding: 20px;
+    background: #0f172a;
+    color: #e0f2fe;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    min-height: 200px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.info {
+    padding: 15px 25px 25px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.9rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+code {
+    background: #e2e8f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+```
+
+#### `public/script.js`
+
+```js
+const filenameInput = document.getElementById('filename');
+const viewBtn = document.getElementById('viewBtn');
+const errorDiv = document.getElementById('error');
+const successDiv = document.getElementById('success');
+const contentPre = document.getElementById('content');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+function showError(message) {
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    successDiv.style.display = 'none';
+    contentPre.textContent = '';
+    fileNameDisplay.textContent = 'Error';
+}
+
+function showSuccess(filename, content) {
+    errorDiv.style.display = 'none';
+    successDiv.textContent = `✅ Successfully loaded: ${filename}`;
+    successDiv.style.display = 'block';
+    
+    fileNameDisplay.textContent = filename;
+    contentPre.textContent = content;
+}
+
+viewBtn.addEventListener('click', async () => {
+    const filename = filenameInput.value.trim();
+    
+    if (!filename) {
+        showError('Please enter a filename');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/view', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            showError(data.error || 'Failed to fetch file');
+        } else {
+            showSuccess(data.filename, data.content);
+        }
+    } catch (err) {
+        showError('Network error. Please try again.');
+        console.error(err);
+    }
+});
+
+// Allow pressing Enter
+filenameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        viewBtn.click();
+    }
+});
+
+// Bonus: Clear error when user starts typing
+filenameInput.addEventListener('input', () => {
+    if (errorDiv.style.display === 'block') {
+        errorDiv.style.display = 'none';
+    }
+});
+```
+
+---
+
+### 3. `package.json`
+
+```json
+{
+  "name": "secure-file-viewer",
+  "version": "1.0.0",
+  "description": "Secure file viewer with path traversal protection",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+```
+
+---
+
+### How to Run
+
+```bash
+# 1. Create the project
+mkdir file-viewer-app && cd file-viewer-app
+
+# 2. Create all files with the code above
+
+# 3. Install dependencies
+npm install
+
+# 4. Run the application
+npm start
+```
+
+Then visit: **http://localhost:3000**
+
+---
+
+### Security Features Implemented
+
+- **Path Traversal Protection**: `../`, absolute paths, and `../../etc/passwd` are blocked
+- **Input Sanitization**: Removes slashes and dangerous characters
+- **Directory Restriction**: All files must be in `/files` folder
+- **Path Resolution Validation**: Uses `path.join()` + `startsWith()` check
+- **No System Files Exposure**: Cannot access `package.json`, `.env`, etc.
+- **Clear Error Messages**: Doesn't leak file system information
+
+---
+
+Would you like me to also add a version with **syntax highlighting** or **file listing** functionality?
+
+============================================================
+

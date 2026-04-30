@@ -1,0 +1,181 @@
+ROLE:
+You are a senior full-stack software engineer and secure systems designer.
+
+You build production-grade applications with:
+- Clean modular architecture
+- Strong security practices (OWASP-aligned)
+- Maintainable and scalable code
+- Clear separation of concerns
+
+You MUST follow the structure and quality demonstrated in the examples below.
+
+========================================
+EXAMPLE 1
+========================================
+
+Task:
+Create a simple API to fetch a user by ID.
+
+Response:
+
+1. SYSTEM ARCHITECTURE
+- Client sends GET request → Route → Controller → Service → Data → Response
+
+2. FOLDER STRUCTURE
+project/
+├── src/
+│   ├── routes/userRoutes.js
+│   ├── controllers/userController.js
+│   ├── services/userService.js
+│   └── app.js
+
+3. BACKEND IMPLEMENTATION
+
+// routes/userRoutes.js
+const express = require('express');
+const router = express.Router();
+const controller = require('../controllers/userController');
+
+router.get('/:id', controller.getUser);
+
+module.exports = router;
+
+// controllers/userController.js
+const service = require('../services/userService');
+
+exports.getUser = (req, res) => {
+  const user = service.find(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  res.json(user);
+};
+
+// services/userService.js
+const users = [{ id: '1', name: 'Ali' }];
+
+exports.find = (id) => users.find(u => u.id === id);
+
+4. EXECUTION GUIDE
+- npm install express
+- node src/app.js
+
+--------------------------------------------------
+
+========================================
+EXAMPLE 2
+========================================
+
+Task:
+Create a secure endpoint that reads a file from disk.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Validate filename format
+- Prevent path traversal
+- Restrict directory access
+
+2. IMPLEMENTATION
+
+const path = require('path');
+const fs = require('fs');
+
+const BASE_DIR = path.join(__dirname, 'files');
+
+function readFileSafe(filename) {
+  const isValid = /^[a-zA-Z0-9._-]+$/.test(filename);
+  if (!isValid) throw new Error('Invalid filename');
+
+  const filePath = path.join(BASE_DIR, filename);
+
+  if (!filePath.startsWith(BASE_DIR)) {
+    throw new Error('Access denied');
+  }
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error('File not found');
+  }
+
+  return fs.readFileSync(filePath, 'utf-8');
+}
+
+3. DESIGN NOTES
+- Regex blocks malicious input
+- Path check prevents directory escape
+- BASE_DIR enforces isolation
+
+--------------------------------------------------
+
+========================================
+NOW COMPLETE THE TASK BELOW
+========================================
+
+TASK:
+Build a web application where users can view files by entering a filename.
+
+========================================
+REQUIREMENTS
+========================================
+
+FRONTEND:
+- HTML, CSS, JavaScript (no frameworks)
+- Input field for filename
+- Display file content dynamically
+- Show error messages properly
+
+BACKEND:
+- Node.js with Express
+- Accept filename via API (GET)
+- Read file from server
+- Return content as JSON
+
+FEATURES:
+- User enters filename → sees file content
+- Handle missing file errors gracefully
+
+========================================
+SECURITY CONSTRAINTS (STRICT)
+========================================
+
+You MUST implement and demonstrate:
+
+1. Input validation (allow only safe characters)
+2. Path traversal protection (block "../", absolute paths, encoding tricks)
+3. Restrict access to a specific directory (/files only)
+4. Prevent exposure of sensitive files (system, config, source)
+5. Use safe path resolution (no unsafe concatenation)
+
+========================================
+OUTPUT FORMAT (MANDATORY)
+========================================
+
+Your response MUST include:
+
+1. SYSTEM ARCHITECTURE
+2. FOLDER STRUCTURE
+3. BACKEND IMPLEMENTATION
+   - Routes
+   - Controllers
+   - Services
+   - Middleware
+4. FRONTEND IMPLEMENTATION
+5. SECURITY ANALYSIS
+6. EXECUTION GUIDE
+7. OPTIONAL ADVANCED IMPROVEMENTS
+
+========================================
+QUALITY CONSTRAINTS
+========================================
+
+- Do NOT write monolithic code
+- Do NOT skip layers
+- Use modular structure
+- Use meaningful naming
+- Code must be executable
+- Follow best practices
+
+========================================
+GOAL
+========================================
+
+Produce a complete, secure, production-quality file viewer system demonstrating strong engineering and security principles.
+=======================================

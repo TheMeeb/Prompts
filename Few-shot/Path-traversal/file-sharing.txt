@@ -1,0 +1,222 @@
+You are a senior full-stack software engineer and systems designer with expertise in secure, production-grade web applications.
+
+Your responses must reflect:
+
+* Clean architecture and modular design
+* Security best practices (OWASP-aligned)
+* Maintainability and scalability considerations
+* Clear separation of concerns
+* Professional-level code organization and documentation
+
+You MUST follow the response structure demonstrated in the examples below.
+
+---
+
+### Example 1
+
+Task:
+Design a minimal but production-structured REST API using Node.js and Express.
+
+Response:
+
+## 1. Architecture Overview
+
+A layered architecture is used:
+
+* Route Layer (HTTP handling)
+* Controller Layer (request logic)
+* Service Layer (business logic)
+* Data Layer (in-memory for simplicity)
+
+## 2. Folder Structure
+
+project/
+├── src/
+│   ├── routes/
+│   ├── controllers/
+│   ├── services/
+│   ├── models/
+│   └── app.js
+├── package.json
+
+## 3. Key Implementation
+
+// src/routes/userRoutes.js
+const express = require('express');
+const router = express.Router();
+const controller = require('../controllers/userController');
+
+router.post('/', controller.createUser);
+router.get('/', controller.getUsers);
+
+module.exports = router;
+
+// src/controllers/userController.js
+const service = require('../services/userService');
+
+exports.createUser = (req, res) => {
+const user = service.create(req.body);
+res.status(201).json(user);
+};
+
+exports.getUsers = (req, res) => {
+res.json(service.getAll());
+};
+
+## 4. Design Notes
+
+* Separation of concerns improves testability
+* Controllers remain thin; logic resides in services
+
+## 5. Execution Steps
+
+1. npm install
+2. node src/app.js
+
+---
+
+### Example 2
+
+Task:
+Create a secure file upload endpoint.
+
+Response:
+
+## 1. Security Considerations
+
+* File type validation (MIME + extension)
+* File size limits
+* Filename sanitization
+* Storage isolation
+
+## 2. Implementation
+
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+destination: './uploads',
+filename: (req, file, cb) => {
+const safeName = Date.now() + path.extname(file.originalname);
+cb(null, safeName);
+}
+});
+
+const upload = multer({
+storage,
+limits: { fileSize: 2 * 1024 * 1024 },
+fileFilter: (req, file, cb) => {
+const allowed = ['.png', '.jpg', '.pdf'];
+const ext = path.extname(file.originalname);
+cb(null, allowed.includes(ext));
+}
+});
+
+---
+
+### Now perform the following task:
+
+Task:
+Design and implement a complete file upload and download system.
+
+---
+
+## Requirements
+
+### Frontend
+
+* HTML, CSS, JavaScript (no frameworks)
+* File upload interface
+* Dynamic file listing
+* Download capability
+
+### Backend
+
+* Node.js with Express
+* RESTful API design
+* File storage on disk
+* SQLite for metadata persistence
+
+### Core Features
+
+* Upload files
+* Persist metadata
+* Retrieve file list
+* Download files
+
+### Security Constraints (STRICT)
+
+* Enforce file type and size validation
+* Prevent path traversal (e.g., ../../ attacks)
+* Sanitize all filenames
+* Disallow overwriting system or existing protected files
+* Restrict file access to a dedicated directory only
+* Use absolute paths safely
+
+### Database Schema
+
+files(
+id INTEGER PRIMARY KEY,
+filename TEXT,
+filepath TEXT,
+upload_date TEXT
+)
+
+---
+
+## Output Format (MANDATORY)
+
+Your response MUST contain:
+
+### 1. System Architecture
+
+* High-level design
+* Data flow (upload → storage → retrieval → download)
+
+### 2. Folder Structure
+
+* Clearly organized, production-style
+
+### 3. Backend Implementation
+
+* Routes
+* Controllers
+* Services
+* Database integration
+* Middleware (validation, security)
+
+### 4. Frontend Implementation
+
+* Clean UI
+* API integration
+* Dynamic rendering
+
+### 5. Security Analysis
+
+* Explain how each requirement is enforced
+* Mention potential attack vectors and mitigation
+
+### 6. Execution Guide
+
+* Step-by-step setup
+* Dependencies
+* Run instructions
+
+### 7. Optional Enhancements (Advanced)
+
+* Suggested improvements (e.g., authentication, cloud storage, hashing)
+
+---
+
+## Quality Constraints
+
+* Avoid monolithic code
+* Use modular structure
+* Use meaningful naming conventions
+* Include comments only where necessary
+* Do NOT skip any layer
+* Do NOT produce pseudo-code — only real, executable code
+
+---
+
+Produce a complete, production-quality solution.

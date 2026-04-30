@@ -1,0 +1,778 @@
+Date    : 2026-04-22T12:45:07.545473
+Total   : 28.8s
+============================================================
+PROMPT:
+You are an experienced full-stack web developer.
+
+Create a complete authentication system with the following requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Create Login and Signup pages
+- Use fetch API to communicate with backend
+
+Backend:
+- Use Node.js with Express
+- Use SQLite as the database
+
+Features:
+- User signup and login
+- Password hashing using bcrypt
+- Input validation
+- Proper error handling
+
+Security:
+- Prevent SQL injection
+- Store passwords securely (hashed)
+- Use JWT or session-based authentication
+
+Database:
+- Design a simple users table (id, username, email, password)
+
+Output:
+- Provide complete folder structure
+- Provide all code files (frontend + backend)
+- Explain how to run the project step by step
+============================================================
+
+MODEL   : x-ai/grok-4.20
+Time    : 28.8s
+Tokens  : in=275  out=4058  total=4333
+Speed   : 141 tok/s
+────────────────────────────────────────────────────────────
+**COMPLETE AUTHENTICATION SYSTEM**  
+**Node.js + Express + SQLite + Vanilla Frontend**
+
+---
+
+### Folder Structure
+
+```bash
+auth-system/
+├── backend/
+│   ├── config/
+│   │   └── database.js
+│   ├── controllers/
+│   │   ├── authController.js
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   └── validate.js
+│   ├── routes/
+│   │   └── authRoutes.js
+│   ├── utils/
+│   │   └── generateToken.js
+│   ├── server.js
+│   └── .env
+│
+├── frontend/
+│   ├── index.html
+│   ├── login.html
+│   ├── signup.html
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── auth.js
+│       └── utils.js
+│
+├── README.md
+└── package.json
+```
+
+---
+
+### Backend Files
+
+#### `package.json`
+
+```json
+{
+  "name": "auth-system",
+  "version": "1.0.0",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+```
+
+#### `backend/config/database.js`
+
+```js
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+const dbpath = path.join(__dirname, '../database.sqlite');
+
+const db = new sqlite3.database(dbpath, (err) => {
+  if (err) {
+    console.error('error opening database:', err.message);
+  } else {
+    console.log('connected to sqlite database.');
+    initdatabase();
+  }
+});
+
+function initdatabase() {
+  db.run(`
+    create table if not exists users (
+      id integer primary key autoincrement,
+      username text unique not null,
+      email text unique not null,
+      password text not null,
+      created_at datetime default current_timestamp
+    )
+  `, (err) => {
+    if (err) console.error('error creating table:', err);
+  });
+}
+
+module.exports = db;
+```
+
+#### `backend/utils/generateToken.js`
+
+```js
+const jwt = require('jsonwebtoken');
+
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user.id, username: user.username, email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+};
+
+module.exports = generateToken;
+```
+
+#### `backend/middleware/validate.js`
+
+```js
+const validateSignup = (req, res, next) => {
+  const { username, email, password } = req.body;
+
+  if (!username || username.length < 3) {
+    return res.status(400).json({ message: 'Username must be at least 3 characters' });
+  }
+
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ message: 'Valid email is required' });
+  }
+
+  if (!password || password.length < 6) {
+    return res.status(400).json({ message: 'Password must be at least 6 characters' });
+  }
+
+  next();
+};
+
+module.exports = { validateSignup };
+```
+
+#### `backend/middleware/auth.js`
+
+```js
+const jwt = require('jsonwebtoken');
+
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+module.exports = authenticateToken;
+```
+
+#### `backend/controllers/authController.js`
+
+```js
+const bcrypt = require('bcrypt');
+const db = require('../config/database');
+const generateToken = require('../utils/generateToken');
+
+const signup = async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    // Check if user exists
+    const existingUser = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM users WHERE email = ? OR username = ?', 
+        [email, username], (err, row) => {
+        if (err) reject(err);
+        resolve(row);
+      });
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ 
+        message: existingUser.email === email 
+          ? 'Email already registered' 
+          : 'Username already taken' 
+      });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Insert user
+    const result = await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+        [username, email, hashedPassword],
+        function(err) {
+          if (err) reject(err);
+          resolve(this.lastID);
+        }
+      );
+    });
+
+    const token = generateToken({ id: result, username, email });
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: { id: result, username, email }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during signup' });
+  }
+};
+
+const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
+        if (err) reject(err);
+        resolve(row);
+      });
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = generateToken(user);
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during login' });
+  }
+};
+
+const getProfile = (req, res) => {
+  res.json({
+    message: 'Profile retrieved',
+    user: req.user
+  });
+};
+
+module.exports = { signup, login, getProfile };
+```
+
+#### `backend/routes/authRoutes.js`
+
+```js
+const express = require('express');
+const router = express.Router();
+const { signup, login, getProfile } = require('../controllers/authController');
+const authenticateToken = require('../middleware/auth');
+const { validateSignup } = require('../middleware/validate');
+
+router.post('/signup', validateSignup, signup);
+router.post('/login', login);
+router.get('/profile', authenticateToken, getProfile);
+
+module.exports = router;
+```
+
+#### `backend/server.js`
+
+```js
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const authRoutes = require('./routes/authRoutes');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static('../frontend'));
+
+// Routes
+app.use('/api/auth', authRoutes);
+
+// Test route
+app.get('/', (req, res) => {
+  res.send('Authentication System API is running!');
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+#### `backend/.env`
+
+```env
+JWT_SECRET=your-super-secret-jwt-key-1234567890-change-this-in-production
+PORT=3000
+```
+
+---
+
+### Frontend Files
+
+#### `frontend/css/style.css`
+
+```css
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  background: white;
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #333;
+  font-size: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+.alert {
+  padding: 12px;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.alert.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.alert.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.toggle {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #666;
+}
+
+.toggle a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.toggle a:hover {
+  text-decoration: underline;
+}
+```
+
+#### `frontend/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth System - Home</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome!</h1>
+    <div id="content">
+      <p style="text-align:center; margin: 20px 0; color: #666;">
+        Please <a href="login.html" style="color:#667eea">Login</a> or 
+        <a href="signup.html" style="color:#667eea">Sign Up</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script>
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (token) {
+      window.location.href = 'login.html';
+    }
+  </script>
+</body>
+</html>
+```
+
+#### `frontend/login.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Auth System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Login</h1>
+    
+    <div id="alert" class="alert" style="display:none"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" required>
+      </div>
+
+      <button type="submit">Login</button>
+    </form>
+
+    <div class="toggle">
+      Don't have an account? <a href="signup.html">Sign up</a>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
+```
+
+#### `frontend/signup.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Auth System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Create Account</h1>
+    
+    <div id="alert" class="alert" style="display:none"></div>
+
+    <form id="signupForm">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" required minlength="3">
+      </div>
+      
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" required minlength="6">
+      </div>
+
+      <button type="submit">Sign Up</button>
+    </form>
+
+    <div class="toggle">
+      Already have an account? <a href="login.html">Login</a>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
+```
+
+#### `frontend/js/utils.js`
+
+```js
+const API_BASE = 'http://localhost:3000/api';
+
+const showAlert = (message, type = 'error') => {
+  const alertEl = document.getElementById('alert');
+  alertEl.textContent = message;
+  alertEl.className = `alert ${type}`;
+  alertEl.style.display = 'block';
+  
+  setTimeout(() => {
+    alertEl.style.display = 'none';
+  }, 5000);
+};
+
+const setToken = (token) => {
+  localStorage.setItem('token', token);
+};
+
+const getToken = () => {
+  return localStorage.getItem('token');
+};
+
+const logout = () => {
+  localStorage.removeItem('token');
+  window.location.href = 'login.html';
+};
+```
+
+#### `frontend/js/auth.js`
+
+```js
+// Handle Login
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    try {
+      const res = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setToken(data.token);
+        showAlert('Login successful! Redirecting...', 'success');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 1500);
+      } else {
+        showAlert(data.message);
+      }
+    } catch (err) {
+      showAlert('Server connection error');
+    }
+  });
+}
+
+// Handle Signup
+const signupForm = document.getElementById('signupForm');
+if (signupForm) {
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    try {
+      const res = await fetch('http://localhost:3000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setToken(data.token);
+        showAlert('Account created successfully!', 'success');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 1500);
+      } else {
+        showAlert(data.message);
+      }
+    } catch (err) {
+      showAlert('Server connection error');
+    }
+  });
+}
+
+// Check authentication on protected pages
+if (window.location.pathname.includes('index.html')) {
+  const token = getToken();
+  if (!token) {
+    window.location.href = 'login.html';
+  }
+}
+```
+
+---
+
+### How to Run the Project
+
+#### Step 1: Install Dependencies
+
+```bash
+npm install
+```
+
+#### Step 2: Create `.env` file
+
+Create `backend/.env` with:
+
+```env
+JWT_SECRET=supersecretkey1234567890changeinproduction
+```
+
+#### Step 3: Run the Application
+
+**Development mode (recommended):**
+
+```bash
+npm run dev
+```
+
+**Or normal mode:**
+
+```bash
+npm start
+```
+
+#### Step 4: Open in Browser
+
+Open: `http://localhost:3000`
+
+You can access:
+- `login.html`
+- `signup.html`
+- `index.html` (protected after login)
+
+---
+
+### Features Implemented
+
+- **Secure Password Hashing** with bcrypt
+- **JWT Authentication**
+- **Input Validation**
+- **SQL Injection Prevention** (using parameterized queries)
+- **Proper Error Handling**
+- **Responsive UI**
+- **Session Persistence** via localStorage
+- **Clean Architecture**
+
+---
+
+**Would you like me to also create a version with:**
+1. Protected dashboard page?
+2. Refresh token system?
+3. Email verification simulation?
+
+Just say the word!
+
+============================================================
+

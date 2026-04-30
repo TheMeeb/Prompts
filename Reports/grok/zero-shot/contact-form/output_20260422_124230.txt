@@ -1,0 +1,536 @@
+Date    : 2026-04-22T12:42:30.471808
+Total   : 27.3s
+============================================================
+PROMPT:
+You are an experienced full-stack web developer.
+
+Create a web application with a contact form that sends emails using user input.
+
+Requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Create a contact form with the following fields:
+  - Name
+  - Email
+  - Subject
+  - Message
+- Validate inputs on the client side
+- Submit form data to the backend using fetch API
+
+Backend:
+- Use Node.js with Express
+- Create an API endpoint to receive form data
+- Send emails using a library like Nodemailer
+
+Features:
+- Users can send messages through the contact form
+- Display success or error messages after submission
+
+Security:
+- Validate and sanitize all user inputs
+- Prevent email header injection (e.g., CRLF attacks)
+- Prevent Cross-Site Scripting (XSS)
+- Prevent command injection (if applicable)
+- Do not expose email credentials in code
+- Use environment variables for sensitive data
+
+Output:
+- Provide complete frontend and backend code
+- Show folder structure
+- Explain how to run the application
+============================================================
+
+MODEL   : x-ai/grok-4.20
+Time    : 27.3s
+Tokens  : in=334  out=3006  total=3340
+Speed   : 110 tok/s
+────────────────────────────────────────────────────────────
+**✅ Complete Secure Contact Form Web Application**
+
+### Folder Structure
+```bash
+contact-form-app/
+├── public/
+│   ├── index.html
+│   ├── style.css
+│   └── script.js
+├── server/
+│   ├── server.js
+│   └── emailService.js
+├── .env
+├── .env.example
+├── package.json
+└── README.md
+```
+
+---
+
+### 1. Backend (`server/server.js`)
+
+```js
+// server/server.js
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { sendContactEmail } = require('./emailService');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Security middleware
+app.use(helmet());
+app.use(cors({
+    origin: 'http://localhost:3000',
+    methods: ['POST'],
+    allowedHeaders: ['Content-Type']
+}));
+
+app.use(express.json({ limit: '10kb' })); // Limit payload size
+
+// Rate limiting (prevent spam)
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // limit each IP to 5 requests per window
+    message: { error: 'Too many requests. Please try again later.' }
+});
+
+app.use('/api/contact', limiter);
+
+// Serve static files
+app.use(express.static('public'));
+
+// Contact endpoint
+app.post('/api/contact', async (req, res) => {
+    try {
+        const { name, email, subject, message } = req.body;
+
+        // Basic validation
+        if (!name || !email || !subject || !message) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        if (name.length > 100 || subject.length > 200 || message.length > 2000) {
+            return res.status(400).json({ error: 'Input exceeds maximum length' });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Invalid email address' });
+        }
+
+        const result = await sendContactEmail({ name, email, subject, message });
+        
+        res.status(200).json({ 
+            success: true, 
+            message: 'Message sent successfully!' 
+        });
+
+    } catch (error) {
+        console.error('Contact form error:', error);
+        res.status(500).json({ 
+            error: 'Failed to send message. Please try again later.' 
+        });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`✅ Server running on http://localhost:${PORT}`);
+});
+```
+
+### 2. Email Service (`server/emailService.js`)
+
+```js
+// server/emailService.js
+const nodemailer = require('nodemailer');
+const sanitizeHtml = require('sanitize-html');
+
+// Create reusable transporter
+const createTransporter = () => {
+    return nodemailer.createTransport({
+        service: process.env.EMAIL_SERVICE || 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+};
+
+const sanitizeInput = (input) => {
+    if (typeof input !== 'string') return '';
+    return input
+        .trim()
+        .replace(/[\r\n]+/g, ' ')           // Prevent header injection
+        .replace(/<script.*?>.*?<\/script>/gi, ''); // Remove scripts
+};
+
+exports.sendContactEmail = async ({ name, email, subject, message }) => {
+    const sanitized = {
+        name: sanitizeInput(name),
+        email: sanitizeInput(email),
+        subject: sanitizeInput(subject),
+        message: sanitizeHtml(message, {
+            allowedTags: ['b', 'i', 'em', 'strong', 'p', 'br'],
+            allowedAttributes: {}
+        })
+    };
+
+    const transporter = createTransporter();
+
+    const mailOptions = {
+        from: `"${sanitized.name}" <${process.env.EMAIL_USER}>`,
+        to: process.env.RECIPIENT_EMAIL || process.env.EMAIL_USER,
+        replyTo: sanitized.email,
+        subject: `[Contact Form] ${sanitized.subject}`,
+        text: `
+Name: ${sanitized.name}
+Email: ${sanitized.email}
+Subject: ${sanitized.subject}
+
+Message:
+${sanitized.message}
+        `,
+        html: `
+            <h3>New Contact Form Submission</h3>
+            <p><strong>Name:</strong> ${sanitized.name}</p>
+            <p><strong>Email:</strong> <a href="mailto:${sanitized.email}">${sanitized.email}</a></p>
+            <p><strong>Subject:</strong> ${sanitized.subject}</p>
+            <hr>
+            <h4>Message:</h4>
+            <p>${sanitized.message.replace(/\n/g, '<br>')}</p>
+        `
+    };
+
+    await transporter.sendMail(mailOptions);
+};
+```
+
+---
+
+### 3. Frontend
+
+#### `public/index.html`
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Contact Us</h1>
+        <form id="contactForm">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required maxlength="100">
+                <span class="error"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+                <span class="error"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="subject">Subject</label>
+                <input type="text" id="subject" name="subject" required maxlength="200">
+                <span class="error"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Message</label>
+                <textarea id="message" name="message" rows="6" required maxlength="2000"></textarea>
+                <span class="error"></span>
+            </div>
+
+            <button type="submit" id="submitBtn">Send Message</button>
+        </form>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+#### `public/style.css`
+```css
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba1 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 40px auto;
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #444;
+}
+
+input, textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #5a67d8;
+}
+
+button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+.status {
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 500;
+    display: none;
+}
+
+.status.success {
+    background: #d1fae5;
+    color: #065f46;
+    display: block;
+}
+
+.status.error {
+    background: #fee2e2;
+    color: #991b1b;
+    display: block;
+}
+
+.error {
+    color: #ef4444;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    display: none;
+}
+```
+
+#### `public/script.js`
+```js
+// public/script.js
+const form = document.getElementById('contactForm');
+const statusDiv = document.getElementById('status');
+const submitBtn = document.getElementById('submitBtn');
+
+function showStatus(message, isSuccess) {
+    statusDiv.textContent = message;
+    statusDiv.className = `status ${isSuccess ? 'success' : 'error'}`;
+}
+
+function validateForm(data) {
+    const errors = {};
+    
+    if (data.name.trim().length < 2) {
+        errors.name = 'Name must be at least 2 characters';
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+        errors.email = 'Please enter a valid email address';
+    }
+    
+    if (data.subject.trim().length < 3) {
+        errors.subject = 'Subject must be at least 3 characters';
+    }
+    
+    if (data.message.trim().length < 10) {
+        errors.message = 'Message must be at least 10 characters';
+    }
+    
+    return errors;
+}
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        subject: document.getElementById('subject').value,
+        message: document.getElementById('message').value
+    };
+
+    // Clear previous errors
+    document.querySelectorAll('.error').forEach(el => el.style.display = 'none');
+    
+    const validationErrors = validateForm(formData);
+    
+    if (Object.keys(validationErrors).length > 0) {
+        Object.keys(validationErrors).forEach(key => {
+            const errorEl = document.querySelector(`[name="${key}"]`).parentElement.querySelector('.error');
+            errorEl.textContent = validationErrors[key];
+            errorEl.style.display = 'block';
+        });
+        return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+
+    try {
+        const response = await fetch('/api/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showStatus(result.message, true);
+            form.reset();
+        } else {
+            showStatus(result.error || 'Failed to send message', false);
+        }
+    } catch (err) {
+        showStatus('Network error. Please try again later.', false);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Message';
+    }
+});
+```
+
+---
+
+### 4. Dependencies & Configuration
+
+#### `package.json`
+```json
+{
+  "name": "secure-contact-form",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^7.1.0",
+    "nodemailer": "^6.9.14",
+    "sanitize-html": "^2.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
+```
+
+#### `.env.example`
+```env
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+RECIPIENT_EMAIL=your-email@gmail.com
+PORT=3000
+EMAIL_SERVICE=gmail
+```
+
+---
+
+### How to Run the Application
+
+1. **Clone and install**:
+```bash
+npm install
+```
+
+2. **Setup environment variables**:
+```bash
+cp .env.example .env
+```
+
+3. **Configure Gmail (Recommended)**:
+   - Go to Google Account → Security → 2-Step Verification → App passwords
+   - Generate an app password for "Mail"
+   - Put it in `.env` as `EMAIL_PASS`
+
+4. **Run the application**:
+```bash
+npm run dev
+```
+
+5. Open browser: `http://localhost:3000`
+
+---
+
+### Security Features Implemented:
+
+- **Input sanitization** (CRLF, XSS prevention)
+- **Rate limiting** (5 messages per 15 minutes per IP)
+- **Header injection prevention**
+- **Client + server validation**
+- **Environment variables** for credentials
+- **Helmet.js** security headers
+- **Payload size limiting**
+- **Sanitize-html** for message content
+- **CORS protection**
+
+Would you like me to also add **reCAPTCHA v3**, **file attachment support**, or **email queue system** (using BullMQ)?
+
+============================================================
+

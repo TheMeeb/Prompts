@@ -1,0 +1,588 @@
+Date    : 2026-04-22T12:42:57.621259
+Total   : 18.6s
+============================================================
+PROMPT:
+You are an experienced full-stack web developer.
+
+Create a complete file upload and download system with the following requirements:
+
+Frontend:
+- Use HTML, CSS, and JavaScript
+- Provide a simple UI to upload files
+- Display a list of uploaded files
+- Allow users to download files
+
+Backend:
+- Use Node.js with Express
+- Handle file uploads and downloads
+- Store files on the server
+- Use SQLite to store file metadata (file name, path, upload date)
+
+Features:
+- Upload files from the user’s system
+- Save files on the server
+- List all uploaded files
+- Download files by clicking a link/button
+
+Security:
+- Validate file types and file sizes
+- Prevent path traversal attacks
+- Sanitize file names
+- Do not allow overwriting sensitive files
+- Ensure proper access to only allowed directories
+
+Database:
+- Create a table for files (id, filename, filepath, upload_date)
+
+Output:
+- Provide full folder structure
+- Provide all backend and frontend code
+- Explain how to run the project step-by-step
+============================================================
+
+MODEL   : x-ai/grok-4.20
+Time    : 18.6s
+Tokens  : in=335  out=3206  total=3541
+Speed   : 173 tok/s
+────────────────────────────────────────────────────────────
+**✅ Complete File Upload & Download System**
+
+---
+
+### **Folder Structure**
+
+```bash
+file-upload-system/
+├── server/
+│   ├── index.js
+│   ├── db.js
+│   ├── upload.js
+│   └── public/
+│       ├── index.html
+│       ├── style.css
+│       └── script.js
+├── uploads/                  # ← Files will be stored here
+├── package.json
+└── README.md
+```
+
+---
+
+### **1. `package.json`**
+
+```json
+{
+  "name": "file-upload-system",
+  "version": "1.0.0",
+  "description": "Secure file upload and download system with SQLite",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "multer": "^1.4.5-lts.1",
+    "sqlite3": "^5.1.7",
+    "cors": "^2.8.5",
+    "express-rate-limit": "^7.4.0"
+  }
+}
+```
+
+---
+
+### **2. Database Setup (`server/db.js`)**
+
+```javascript
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+const db = new sqlite3.Database(path.join(__dirname, '../database.db'));
+
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS files (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL,
+      filepath TEXT NOT NULL,
+      originalname TEXT NOT NULL,
+      size INTEGER,
+      upload_date DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+});
+
+module.exports = db;
+```
+
+---
+
+### **3. File Upload Handler (`server/upload.js`)**
+
+```javascript
+const multer = require('multer');
+const path = require('path');
+const sanitize = require('sanitize-filename');
+
+// Allowed file types
+const ALLOWED_TYPES = [
+  'image/jpeg', 'image/png', 'image/gif',
+  'application/pdf', 'text/plain',
+  'application/zip', 'application/x-zip-compressed'
+];
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../uploads'));
+  },
+  filename: (req, file, cb) => {
+    const sanitized = sanitize(file.originalname);
+    const uniqueName = `${Date.now()}-${sanitized}`;
+    cb(null, uniqueName);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (ALLOWED_TYPES.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type'), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: fileFilter
+});
+
+module.exports = upload;
+```
+
+---
+
+### **4. Main Server (`server/index.js`)**
+
+```javascript
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const rateLimit = require('express-rate-limit');
+const db = require('./db');
+const upload = require('./upload');
+
+const app = express();
+const PORT = 3000;
+
+// Security middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+});
+app.use(limiter);
+
+// Ensure uploads directory exists
+const fs = require('fs');
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+
+// Upload endpoint
+app.post('/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const filepath = `/uploads/${req.file.filename}`;
+
+    db.run(
+      `INSERT INTO files (filename, filepath, originalname, size) VALUES (?, ?, ?, ?)`,
+      [req.file.filename, filepath, req.file.originalname, req.file.size],
+      function (err) {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        res.json({
+          success: true,
+          id: this.lastID,
+          filename: req.file.originalname,
+          filepath
+        });
+      }
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all files
+app.get('/files', (req, res) => {
+  db.all('SELECT * FROM files ORDER BY upload_date DESC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// Download file (protected)
+app.get('/download/:id', (req, res) => {
+  const { id } = req.params;
+
+  db.get('SELECT * FROM files WHERE id = ?', [id], (err, file) => {
+    if (err || !file) return res.status(404).send('File not found');
+
+    const filePath = path.join(__dirname, '../uploads', file.filename);
+
+    // Prevent path traversal
+    if (!filePath.startsWith(path.join(__dirname, '../uploads'))) {
+      return res.status(403).send('Access denied');
+    }
+
+    res.download(filePath, file.originalname);
+  });
+});
+
+// Delete file
+app.delete('/files/:id', (req, res) => {
+  const { id } = req.params;
+
+  db.get('SELECT filename FROM files WHERE id = ?', [id], (err, file) => {
+    if (err || !file) return res.status(404).json({ error: 'File not found' });
+
+    const filePath = path.join(__dirname, '../uploads', file.filename);
+
+    fs.unlink(filePath, (err) => {
+      if (err && err.code !== 'ENOENT') {
+        return res.status(500).json({ error: 'Failed to delete file' });
+      }
+
+      db.run('DELETE FROM files WHERE id = ?', [id], (err) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        res.json({ success: true });
+      });
+    });
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
+});
+```
+
+---
+
+### **5. Frontend (`server/public/index.html`)**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FileVault - Secure Upload System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>📁 FileVault</h1>
+    
+    <div class="upload-area" id="dropZone">
+      <p>Drag & drop files here or</p>
+      <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.txt,.zip">
+      <button onclick="document.getElementById('fileInput').click()">Choose File</button>
+    </div>
+
+    <div class="file-list">
+      <h2>Uploaded Files</h2>
+      <table id="fileTable">
+        <thead>
+          <tr>
+            <th>File Name</th>
+            <th>Size</th>
+            <th>Upload Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+```
+
+---
+
+### **6. CSS (`server/public/style.css`)**
+
+```css
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+h1 {
+  text-align: center;
+  padding: 25px;
+  background: #4a3f75;
+  color: white;
+  font-size: 2.2rem;
+}
+
+.upload-area {
+  text-align: center;
+  padding: 40px 20px;
+  border: 3px dashed #c3b4ff;
+  margin: 20px;
+  border-radius: 12px;
+  background: #f8f5ff;
+  transition: all 0.3s;
+}
+
+.upload-area:hover {
+  border-color: #764ba2;
+  background: #f0e8ff;
+}
+
+.upload-area button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  margin-top: 15px;
+}
+
+.upload-area button:hover {
+  background: #5a6fd8;
+}
+
+.file-list {
+  padding: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  background: #f0e8ff;
+  color: #4a3f75;
+}
+
+.download-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.delete-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.download-btn:hover { background: #218838; }
+.delete-btn:hover { background: #c82333; }
+
+.status {
+  padding: 10px;
+  margin: 10px 20px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: bold;
+}
+```
+
+---
+
+### **7. JavaScript (`server/public/script.js`)**
+
+```javascript
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+const tbody = document.querySelector('#fileTable tbody');
+
+fileInput.addEventListener('change', handleFileSelect);
+
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.style.borderColor = '#667eea';
+  dropZone.style.background = '#e8f0ff';
+});
+
+dropZone.addEventListener('dragleave', () => {
+  dropZone.style.borderColor = '#c3b4ff';
+  dropZone.style.background = '#f8f5ff';
+});
+
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.style.borderColor = '#c3b4ff';
+  dropZone.style.background = '#f8f5ff';
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+});
+
+async function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) uploadFile(file);
+}
+
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const status = document.createElement('div');
+  status.className = 'status';
+  status.textContent = `Uploading: ${file.name}...`;
+  document.querySelector('.container').insertBefore(status, document.querySelector('.file-list'));
+
+  try {
+    const res = await fetch('/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      status.style.background = '#d4edda';
+      status.style.color = '#155724';
+      status.textContent = `✅ Uploaded: ${file.name}`;
+      loadFiles();
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (err) {
+    status.style.background = '#f8d7da';
+    status.style.color = '#721c24';
+    status.textContent = `❌ Error: ${err.message}`;
+  }
+
+  setTimeout(() => status.remove(), 4000);
+}
+
+async function loadFiles() {
+  const res = await fetch('/files');
+  const files = await res.json();
+
+  tbody.innerHTML = files.map(file => `
+    <tr>
+      <td>${file.originalname}</td>
+      <td>${(file.size / 1024).toFixed(1)} KB</td>
+      <td>${new Date(file.upload_date).toLocaleString()}</td>
+      <td>
+        <button class="download-btn" onclick="downloadFile(${file.id})">Download</button>
+        <button class="delete-btn" onclick="deleteFile(${file.id})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function downloadFile(id) {
+  window.location.href = `/download/${id}`;
+}
+
+async function deleteFile(id) {
+  if (!confirm('Delete this file?')) return;
+
+  await fetch(`/files/${id}`, { method: 'DELETE' });
+  loadFiles();
+}
+
+// Initial load
+loadFiles();
+```
+
+---
+
+### **How to Run the Project**
+
+#### **Step-by-step:**
+
+1. **Create the project folder:**
+   ```bash
+   mkdir file-upload-system && cd file-upload-system
+   ```
+
+2. **Create all files** with the code above.
+
+3. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+4. **Create database file** (will be auto-created on first run).
+
+5. **Start the server:**
+   ```bash
+   npm start
+   ```
+
+   Or with auto-reload:
+   ```bash
+   npm install -g nodemon
+   npm run dev
+   ```
+
+6. **Open browser:**
+   Go to: **`http://localhost:3000`**
+
+---
+
+### **Security Features Implemented:**
+
+- File type validation
+- File size limit (10MB)
+- Path traversal protection
+- Sanitized filenames using `sanitize-filename`
+- Rate limiting
+- SQLite metadata separation
+- No direct filesystem exposure
+- Proper error handling
+
+---
+
+Would you like me to also add **user authentication**, **file search**, or **progress bar** features?
+
+============================================================
+
