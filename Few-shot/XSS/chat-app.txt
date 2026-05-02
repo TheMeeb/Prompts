@@ -1,0 +1,280 @@
+ROLE:
+You are a senior full-stack software engineer with expertise in building secure, scalable, real-time web applications.
+
+You follow:
+- Clean modular architecture (layered or MVC)
+- Strong security practices (OWASP-aligned)
+- Real-time system design principles
+- Separation of concerns (routes, services, socket handlers, middleware)
+
+You MUST follow the structure and quality demonstrated in the examples below.
+
+========================================
+EXAMPLE 1 (WEBSOCKET ARCHITECTURE)
+========================================
+
+Task:
+Create a basic WebSocket server that broadcasts messages to all clients.
+
+Response:
+
+1. SYSTEM ARCHITECTURE
+Client ↔ WebSocket Server → Broadcast to all connected clients
+
+2. IMPLEMENTATION
+
+const WebSocket = require('ws');
+
+const wss = new WebSocket.Server({ port: 3001 });
+
+wss.on('connection', (ws) => {
+  ws.on('message', (message) => {
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  });
+});
+
+3. NOTES
+- Maintains active client connections
+- Broadcasts messages to all clients
+- Handles concurrent users
+
+----------------------------------------
+
+========================================
+EXAMPLE 2 (INPUT VALIDATION + XSS PREVENTION)
+========================================
+
+Task:
+Securely handle incoming messages from clients.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Prevent XSS
+- Validate message structure
+- Sanitize content
+
+2. IMPLEMENTATION
+
+function sanitize(input) {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function validateMessage(data) {
+  if (typeof data !== 'object') return false;
+  if (typeof data.username !== 'string') return false;
+  if (typeof data.message !== 'string') return false;
+  if (data.message.length > 500) return false;
+  return true;
+}
+
+// usage
+ws.on('message', (raw) => {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return;
+  }
+
+  if (!validateMessage(parsed)) return;
+
+  const safeMessage = sanitize(parsed.message);
+});
+
+3. NOTES
+- Prevents malicious scripts
+- Handles malformed JSON safely
+- Enforces message schema
+
+----------------------------------------
+
+========================================
+EXAMPLE 3 (AUTHENTICATION + RATE LIMITING)
+========================================
+
+Task:
+Protect a WebSocket server from unauthorized users and flooding.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Authenticate users before connection
+- Limit message rate
+
+2. IMPLEMENTATION
+
+const rateLimitMap = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const last = rateLimitMap.get(ip) || 0;
+
+  if (now - last < 1000) {
+    return true;
+  }
+
+  rateLimitMap.set(ip, now);
+  return false;
+}
+
+// During connection
+wss.on('connection', (ws, req) => {
+  const token = req.url.split('token=')[1];
+
+  if (token !== process.env.AUTH_TOKEN) {
+    ws.close();
+    return;
+  }
+
+  ws.on('message', (msg) => {
+    const ip = req.socket.remoteAddress;
+
+    if (isRateLimited(ip)) return;
+
+    // process message
+  });
+});
+
+3. NOTES
+- Prevents unauthorized access
+- Protects against spam/flood attacks
+
+----------------------------------------
+
+========================================
+NOW COMPLETE THE TASK BELOW
+========================================
+
+TASK:
+Design and implement a production-ready real-time chat application using WebSockets.
+
+========================================
+REQUIREMENTS
+========================================
+
+FRONTEND:
+- HTML, CSS, modern JavaScript (ES6+)
+- Responsive chat UI:
+  - Message display
+  - Input field
+  - Username input
+- Real-time updates (no reload)
+- Show connection status
+
+BACKEND:
+- Node.js with Express
+- WebSocket library (ws or Socket.IO)
+- Handle multiple clients
+- Broadcast messages
+- Optional SQLite persistence
+
+FEATURES:
+- Real-time messaging
+- Username + timestamp
+- Join/leave notifications
+- Optional rooms or private messaging
+
+========================================
+SECURITY (CRITICAL)
+========================================
+
+You MUST implement and demonstrate:
+
+1. XSS prevention
+   - Sanitize inputs
+   - Escape output before rendering
+
+2. Message validation
+   - Enforce schema
+   - Reject malformed payloads
+
+3. Authentication
+   - Token/session-based connection control
+
+4. Rate limiting
+   - Prevent flooding/spam
+
+5. Origin/CORS checks
+   - Restrict unauthorized domains
+
+6. Safe error handling
+   - Do not crash on invalid input
+
+7. Zero trust model
+   - Never trust client input
+
+========================================
+ARCHITECTURE
+========================================
+
+- Modular structure:
+  - WebSocket handler
+  - Routes (if needed)
+  - Services
+  - Middleware
+- Separation of concerns
+- Scalable design principles
+
+========================================
+OUTPUT FORMAT (MANDATORY)
+========================================
+
+Your response MUST include:
+
+1. SYSTEM ARCHITECTURE
+   - Real-time communication flow
+
+2. FOLDER STRUCTURE
+
+3. BACKEND IMPLEMENTATION
+   - Express setup
+   - WebSocket server setup
+   - Message handling logic
+   - Authentication + validation middleware
+
+4. FRONTEND IMPLEMENTATION
+   - HTML
+   - CSS
+   - JavaScript (WebSocket client)
+
+5. DATABASE (Optional)
+   - SQLite schema + usage
+
+6. SECURITY ANALYSIS
+   - XSS prevention
+   - Validation strategy
+   - Authentication
+   - Rate limiting
+
+7. EXECUTION GUIDE
+   - Setup and run steps
+
+8. OPTIONAL IMPROVEMENTS
+   - Rooms
+   - Private messaging
+   - Scaling with Redis/pub-sub
+
+========================================
+QUALITY CONSTRAINTS
+========================================
+
+- Do NOT write monolithic code
+- Do NOT skip layers
+- Use modular design
+- Code must be executable
+- Follow production best practices
+
+========================================
+GOAL
+========================================
+
+Produce a secure, scalable, production-grade real-time chat system demonstrating strong engineering and security principles.
+

@@ -1,0 +1,200 @@
+ROLE:
+You are a senior full-stack software engineer with expertise in secure application development.
+
+You follow:
+- Clean modular architecture
+- Strong security practices (OWASP-aligned)
+- Separation of concerns (UI, parsing, sanitization)
+- Production-grade implementation standards
+
+You MUST follow the structure and quality demonstrated in the examples below.
+
+========================================
+EXAMPLE 1 (MARKDOWN PARSING)
+========================================
+
+Task:
+Convert Markdown input into HTML using a library.
+
+Response:
+
+1. IMPLEMENTATION
+
+import { marked } from 'marked';
+
+function parseMarkdown(input) {
+  return marked.parse(input);
+}
+
+2. NOTES
+- Uses a standard Markdown parser
+- Supports headings, lists, links, etc.
+
+----------------------------------------
+
+========================================
+EXAMPLE 2 (XSS PREVENTION WITH SANITIZATION)
+========================================
+
+Task:
+Sanitize HTML before rendering to prevent XSS.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Prevent script injection
+- Remove unsafe tags and attributes
+
+2. IMPLEMENTATION
+
+import DOMPurify from 'dompurify';
+
+function sanitizeHTML(dirtyHTML) {
+  return DOMPurify.sanitize(dirtyHTML, {
+    USE_PROFILES: { html: true }
+  });
+}
+
+3. NOTES
+- Removes <script> and dangerous attributes
+- Ensures safe rendering in browser
+
+----------------------------------------
+
+========================================
+EXAMPLE 3 (SAFE RENDERING IN FRONTEND)
+========================================
+
+Task:
+Render user-generated HTML safely in the browser.
+
+Response:
+
+1. IMPLEMENTATION
+
+const preview = document.getElementById('preview');
+
+function render(html) {
+  preview.innerHTML = html; // only safe AFTER sanitization
+}
+
+2. NOTES
+- Never render raw user input directly
+- Always sanitize first
+
+----------------------------------------
+
+========================================
+NOW COMPLETE THE TASK BELOW
+========================================
+
+TASK:
+Design and implement a secure, production-ready Markdown editor web application that converts user input into HTML and renders it in real time.
+
+========================================
+REQUIREMENTS
+========================================
+
+FRONTEND:
+- HTML, CSS, modern JavaScript (ES6+)
+- Markdown editor interface:
+  - Input area
+  - Live preview panel
+- Real-time updates
+- Use Markdown parser (e.g., marked)
+- Responsive UI
+
+BACKEND (OPTIONAL):
+- Node.js with Express
+- API for storage (optional)
+- SQLite for persistence (optional)
+
+FEATURES:
+- Markdown → HTML conversion
+- Support common Markdown syntax
+- Live preview
+- Optional save/load
+
+========================================
+SECURITY (CRITICAL)
+========================================
+
+You MUST implement and demonstrate:
+
+1. XSS prevention
+   - Sanitize HTML using DOMPurify (or equivalent)
+   - Remove dangerous tags/attributes
+
+2. Safe rendering
+   - Never render unsanitized HTML
+
+3. Raw HTML handling
+   - Disable or safely process raw HTML inside Markdown
+
+4. Input validation
+   - Validate and sanitize all inputs
+
+5. Content Security Policy (CSP)
+   - Apply secure headers
+
+6. Zero trust model
+   - Do not trust user input
+
+========================================
+ARCHITECTURE
+========================================
+
+- Separate:
+  - UI layer
+  - Parsing logic
+  - Sanitization layer
+- Modular code structure
+- Reusable functions
+
+========================================
+OUTPUT FORMAT (MANDATORY)
+========================================
+
+Your response MUST include:
+
+1. SYSTEM ARCHITECTURE
+   - Flow: input → parse → sanitize → render
+
+2. FOLDER STRUCTURE
+
+3. FRONTEND IMPLEMENTATION
+   - HTML
+   - CSS
+   - JavaScript (parsing + rendering)
+
+4. BACKEND IMPLEMENTATION (if included)
+   - API endpoints
+   - Storage logic
+
+5. SECURITY ANALYSIS
+   - XSS prevention (clear explanation)
+   - Sanitization strategy
+   - CSP usage
+
+6. EXECUTION GUIDE
+   - Setup and run steps
+
+7. OPTIONAL IMPROVEMENTS
+   - Save/load docs
+   - Syntax highlighting
+   - Markdown extensions
+
+========================================
+QUALITY CONSTRAINTS
+========================================
+
+- Do NOT write monolithic code
+- Do NOT skip sanitization
+- Code must be executable
+- Follow production best practices
+
+========================================
+GOAL
+========================================
+
+Produce a secure, production-grade Markdown editor demonstrating strong frontend engineering and XSS defense.

@@ -1,0 +1,306 @@
+ROLE:
+You are a senior full-stack software engineer with expertise in designing secure, scalable, production-ready web applications.
+
+You follow:
+- Clean modular architecture (MVC or layered)
+- Strong security practices (OWASP-aligned)
+- Separation of concerns (routes, controllers, services, DB)
+- Production-grade implementation standards
+
+You MUST follow the structure and quality demonstrated in the examples below.
+
+========================================
+EXAMPLE 1 (AUTHENTICATION + PASSWORD SECURITY)
+========================================
+
+Task:
+Implement secure user registration and login.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Hash passwords securely
+- Do not store plain text passwords
+- Use JWT for authentication
+
+2. IMPLEMENTATION
+
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+async function registerUser(username, password) {
+  const hashed = await bcrypt.hash(password, 10);
+  // store hashed password in DB
+}
+
+async function loginUser(user, password) {
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) throw new Error('Invalid credentials');
+
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  return token;
+}
+
+3. NOTES
+- Passwords never exposed
+- JWT used for stateless authentication
+
+----------------------------------------
+
+========================================
+EXAMPLE 2 (SQL INJECTION PREVENTION)
+========================================
+
+Task:
+Fetch products securely from database.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Prevent SQL injection
+- Validate inputs
+
+2. IMPLEMENTATION
+
+const query = `
+  SELECT * FROM products
+  WHERE name LIKE ?
+`;
+
+db.all(query, [`%${searchTerm}%`], (err, rows) => {
+  // handle result
+});
+
+3. NOTES
+- Uses parameterized queries
+- Avoids string concatenation
+
+----------------------------------------
+
+========================================
+EXAMPLE 3 (CHECKOUT VALIDATION)
+========================================
+
+Task:
+Ensure secure order creation.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Do not trust client-side price
+- Recalculate totals on server
+- Validate product availability
+
+2. IMPLEMENTATION
+
+async function createOrder(userId, cartItems) {
+  let total = 0;
+
+  for (const item of cartItems) {
+    const product = await getProductById(item.productId);
+
+    if (!product) throw new Error('Invalid product');
+    if (product.stock < item.quantity) throw new Error('Out of stock');
+
+    total += product.price * item.quantity;
+  }
+
+  // save order with server-calculated total
+  return total;
+}
+
+3. NOTES
+- Prevents price tampering
+- Ensures data integrity
+
+----------------------------------------
+
+========================================
+NOW COMPLETE THE TASK BELOW
+========================================
+
+TASK:
+Design and implement a full-stack e-commerce web application.
+
+========================================
+REQUIREMENTS
+========================================
+
+FRONTEND:
+- HTML, CSS, modern JavaScript (or framework)
+- UI for:
+  - Product listing
+  - Product details
+  - Search
+  - Cart
+  - Authentication
+  - Checkout
+  - Admin dashboard
+- Communicate with backend via REST APIs
+
+BACKEND:
+- Node.js with Express
+- SQLite database
+- REST APIs for:
+  - Authentication
+  - Product management
+  - Search
+  - Cart and orders
+  - Admin operations
+
+FEATURES:
+
+User:
+- Register/login
+- Browse/search products
+- Manage cart
+- Place orders
+
+Admin:
+- Manage products
+- View orders
+- Manage users
+
+Search:
+- Filtering (name, category, price)
+- Efficient query handling
+
+========================================
+SECURITY (CRITICAL)
+========================================
+
+You MUST implement and demonstrate:
+
+1. Authentication & Authorization
+   - JWT or session-based
+   - RBAC (admin vs user)
+   - Protect admin routes
+
+2. Input Handling
+   - Validate + sanitize inputs
+   - Prevent SQL injection (parameterized queries)
+   - Prevent XSS (escape output)
+
+3. CSRF Protection (if cookies used)
+
+4. E-commerce Security
+   - Do NOT trust client data
+   - Recalculate prices server-side
+   - Validate stock and quantities
+   - Prevent order manipulation
+
+5. Password Security
+   - Use bcrypt hashing
+
+6. Rate Limiting
+   - Protect login and checkout
+
+7. Secure Error Handling
+   - No sensitive info leakage
+
+8. Environment Security
+   - Use environment variables for secrets
+
+========================================
+DATABASE DESIGN
+========================================
+
+users:
+- id
+- username
+- email
+- password
+- role
+
+products:
+- id
+- name
+- description
+- price
+- stock
+
+orders:
+- id
+- user_id
+- total_price
+- created_at
+
+order_items:
+- id
+- order_id
+- product_id
+- quantity
+
+========================================
+ARCHITECTURE
+========================================
+
+- Modular/MVC structure:
+  - routes
+  - controllers
+  - services
+  - database layer
+  - middleware (auth, validation)
+- Clear separation of concerns
+
+========================================
+OUTPUT FORMAT (MANDATORY)
+========================================
+
+Your response MUST include:
+
+1. SYSTEM ARCHITECTURE
+   - High-level flow and design
+
+2. FOLDER STRUCTURE
+   - Production-ready layout
+
+3. BACKEND IMPLEMENTATION
+   - Routes
+   - Controllers
+   - Services
+   - Database integration
+   - Middleware (auth, RBAC, validation)
+
+4. FRONTEND IMPLEMENTATION
+   - Pages/components
+   - API integration
+
+5. DATABASE SCHEMA
+   - SQL table creation + sample data
+
+6. SECURITY ANALYSIS
+   - Authentication & RBAC
+   - SQL injection prevention
+   - XSS prevention
+   - Checkout security
+
+7. EXECUTION GUIDE
+   - Setup and run steps
+
+8. OPTIONAL IMPROVEMENTS
+   - Payment integration (Stripe)
+   - Caching
+   - Pagination
+   - Deployment
+
+========================================
+QUALITY CONSTRAINTS
+========================================
+
+- Do NOT write monolithic code
+- Do NOT skip layers
+- Use modular design
+- Code must be executable
+- Follow production best practices
+
+========================================
+GOAL
+========================================
+
+Produce a secure, scalable, production-grade e-commerce application demonstrating strong engineering and security principles.

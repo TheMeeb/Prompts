@@ -1,0 +1,271 @@
+ROLE:
+You are a senior full-stack software engineer with expertise in designing secure, scalable, production-ready web applications.
+
+You follow:
+- Clean modular architecture (MVC or layered)
+- Strong security practices (OWASP-aligned)
+- Separation of concerns (routes, controllers, services, DB)
+- Maintainable and extensible design
+
+You MUST follow the structure and quality demonstrated in the examples below.
+
+========================================
+EXAMPLE 1 (ARCHITECTURE + API DESIGN)
+========================================
+
+Task:
+Create a REST API for managing articles.
+
+Response:
+
+1. SYSTEM ARCHITECTURE
+Client → Routes → Controller → Service → Database → Response
+
+2. FOLDER STRUCTURE
+project/
+├── src/
+│   ├── routes/articleRoutes.js
+│   ├── controllers/articleController.js
+│   ├── services/articleService.js
+│   ├── db.js
+│   └── app.js
+
+3. BACKEND IMPLEMENTATION
+
+// routes/articleRoutes.js
+const express = require('express');
+const router = express.Router();
+const controller = require('../controllers/articleController');
+
+router.get('/', controller.getAll);
+router.post('/', controller.create);
+
+module.exports = router;
+
+// controllers/articleController.js
+const service = require('../services/articleService');
+
+exports.getAll = async (req, res) => {
+  const data = await service.getAll();
+  res.json(data);
+};
+
+exports.create = async (req, res) => {
+  const result = await service.create(req.body);
+  res.status(201).json(result);
+};
+
+4. DESIGN NOTES
+- Controllers are thin
+- Business logic is isolated in services
+- Database layer is abstracted
+
+----------------------------------------
+
+========================================
+EXAMPLE 2 (DATABASE + SQL SECURITY)
+========================================
+
+Task:
+Insert user data securely into SQLite.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Prevent SQL injection
+- Validate inputs
+- Use parameterized queries
+
+2. IMPLEMENTATION
+
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('app.db');
+
+function createUser(name, email) {
+  return new Promise((resolve, reject) => {
+    const query = `INSERT INTO users (name, email) VALUES (?, ?)`;
+    db.run(query, [name, email], function(err) {
+      if (err) return reject(err);
+      resolve({ id: this.lastID });
+    });
+  });
+}
+
+3. NOTES
+- Uses placeholders (?) to prevent SQL injection
+- Never concatenates user input into SQL
+
+----------------------------------------
+
+========================================
+EXAMPLE 3 (XSS PREVENTION)
+========================================
+
+Task:
+Safely render user-generated content in the browser.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Prevent stored XSS
+- Escape HTML output
+
+2. IMPLEMENTATION
+
+function escapeHTML(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Usage in frontend
+element.innerHTML = escapeHTML(userInput);
+
+3. NOTES
+- Prevents execution of malicious scripts
+- Always escape before rendering
+
+----------------------------------------
+
+========================================
+NOW COMPLETE THE TASK BELOW
+========================================
+
+TASK:
+Design and implement a production-level blog platform that allows users to create posts and submit comments.
+
+========================================
+REQUIREMENTS
+========================================
+
+FRONTEND:
+- HTML, CSS, modern JavaScript (ES6+)
+- Responsive UI for:
+  - Viewing blog posts
+  - Viewing comments per post
+  - Submitting comments
+- Use fetch API or Axios
+- Client-side validation
+
+BACKEND:
+- Node.js with Express
+- SQLite database
+- RESTful APIs:
+  - GET posts
+  - POST post
+  - GET comments by post
+  - POST comment
+
+FEATURES:
+- List posts
+- View single post with comments
+- Add comments
+- Persistent storage
+- Timestamps for posts and comments
+
+========================================
+SECURITY (CRITICAL)
+========================================
+
+You MUST implement and demonstrate:
+
+1. Stored XSS prevention
+   - Sanitize inputs
+   - Escape output before rendering
+
+2. Input validation
+   - Both frontend and backend
+
+3. SQL injection prevention
+   - Parameterized queries ONLY
+
+4. Rate limiting
+   - Prevent spam or abuse
+
+5. Payload limits
+   - Restrict large inputs
+
+6. Secure error handling
+   - Proper HTTP status codes
+   - Do not leak internal errors
+
+7. Zero trust for client input
+
+========================================
+DATA MODEL
+========================================
+
+posts:
+- id
+- title
+- content
+- created_at
+
+comments:
+- id
+- post_id
+- author_name
+- content
+- created_at
+
+========================================
+OUTPUT FORMAT (MANDATORY)
+========================================
+
+Your response MUST include:
+
+1. SYSTEM ARCHITECTURE
+   - Flow and design decisions
+
+2. FOLDER STRUCTURE
+   - Production-style organization
+
+3. BACKEND IMPLEMENTATION
+   - Routes
+   - Controllers
+   - Services
+   - Database (SQLite integration)
+   - Middleware (validation, rate limiting)
+
+4. FRONTEND IMPLEMENTATION
+   - HTML
+   - CSS
+   - JavaScript (API calls + rendering)
+
+5. DATABASE SCHEMA
+   - SQL table creation
+
+6. SECURITY ANALYSIS
+   - Explain XSS prevention clearly
+   - Explain SQL injection protection
+   - Explain rate limiting and validation
+
+7. EXECUTION GUIDE
+   - Step-by-step setup and run
+
+8. OPTIONAL IMPROVEMENTS
+   - Authentication
+   - Pagination
+   - Markdown support
+   - Deployment suggestions
+
+========================================
+QUALITY CONSTRAINTS
+========================================
+
+- Do NOT write monolithic code
+- Do NOT skip layers
+- Use modular structure
+- Use meaningful naming
+- Code must be executable
+- Follow production best practices
+
+========================================
+GOAL
+========================================
+
+Produce a complete, secure, production-grade blog platform demonstrating strong backend, frontend, and security engineering.
+
