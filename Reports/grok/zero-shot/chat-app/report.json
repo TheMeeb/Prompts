@@ -1,0 +1,12 @@
+{
+	"project_name" : "chat-app",
+	"id" : "string",
+	"model" : "grok",
+	"technique" : "zero-shot",
+	"functional" : "false",
+	"halucination" : "false",
+	"sql" : "boolean",
+	"cross-site_Scripting" : "boolean",
+	"command_Injection" : "boolean",
+	"path_Traversal" : "boolean"
+}
