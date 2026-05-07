@@ -1,0 +1,1621 @@
+Date    : 2026-05-04T21:46:39.447194
+Total   : 75.0s
+============================================================
+PROMPT:
+ROLE:
+You are a senior full-stack software engineer with expertise in building secure, scalable, real-time web applications.
+
+You follow:
+- Clean modular architecture (layered or MVC)
+- Strong security practices (OWASP-aligned)
+- Real-time system design principles
+- Separation of concerns (routes, services, socket handlers, middleware)
+
+You MUST follow the structure and quality demonstrated in the examples below.
+
+========================================
+EXAMPLE 1 (WEBSOCKET ARCHITECTURE)
+========================================
+
+Task:
+Create a basic WebSocket server that broadcasts messages to all clients.
+
+Response:
+
+1. SYSTEM ARCHITECTURE
+Client ↔ WebSocket Server → Broadcast to all connected clients
+
+2. IMPLEMENTATION
+
+const WebSocket = require('ws');
+
+const wss = new WebSocket.Server({ port: 3001 });
+
+wss.on('connection', (ws) => {
+  ws.on('message', (message) => {
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  });
+});
+
+3. NOTES
+- Maintains active client connections
+- Broadcasts messages to all clients
+- Handles concurrent users
+
+----------------------------------------
+
+========================================
+EXAMPLE 2 (INPUT VALIDATION + XSS PREVENTION)
+========================================
+
+Task:
+Securely handle incoming messages from clients.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Prevent XSS
+- Validate message structure
+- Sanitize content
+
+2. IMPLEMENTATION
+
+function sanitize(input) {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function validateMessage(data) {
+  if (typeof data !== 'object') return false;
+  if (typeof data.username !== 'string') return false;
+  if (typeof data.message !== 'string') return false;
+  if (data.message.length > 500) return false;
+  return true;
+}
+
+// usage
+ws.on('message', (raw) => {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return;
+  }
+
+  if (!validateMessage(parsed)) return;
+
+  const safeMessage = sanitize(parsed.message);
+});
+
+3. NOTES
+- Prevents malicious scripts
+- Handles malformed JSON safely
+- Enforces message schema
+
+----------------------------------------
+
+========================================
+EXAMPLE 3 (AUTHENTICATION + RATE LIMITING)
+========================================
+
+Task:
+Protect a WebSocket server from unauthorized users and flooding.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Authenticate users before connection
+- Limit message rate
+
+2. IMPLEMENTATION
+
+const rateLimitMap = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const last = rateLimitMap.get(ip) || 0;
+
+  if (now - last < 1000) {
+    return true;
+  }
+
+  rateLimitMap.set(ip, now);
+  return false;
+}
+
+// During connection
+wss.on('connection', (ws, req) => {
+  const token = req.url.split('token=')[1];
+
+  if (token !== process.env.AUTH_TOKEN) {
+    ws.close();
+    return;
+  }
+
+  ws.on('message', (msg) => {
+    const ip = req.socket.remoteAddress;
+
+    if (isRateLimited(ip)) return;
+
+    // process message
+  });
+});
+
+3. NOTES
+- Prevents unauthorized access
+- Protects against spam/flood attacks
+
+----------------------------------------
+
+========================================
+NOW COMPLETE THE TASK BELOW
+========================================
+
+TASK:
+Design and implement a production-ready real-time chat application using WebSockets.
+
+========================================
+REQUIREMENTS
+========================================
+
+FRONTEND:
+- HTML, CSS, modern JavaScript (ES6+)
+- Responsive chat UI:
+  - Message display
+  - Input field
+  - Username input
+- Real-time updates (no reload)
+- Show connection status
+
+BACKEND:
+- Node.js with Express
+- WebSocket library (ws or Socket.IO)
+- Handle multiple clients
+- Broadcast messages
+- Optional SQLite persistence
+
+FEATURES:
+- Real-time messaging
+- Username + timestamp
+- Join/leave notifications
+- Optional rooms or private messaging
+
+========================================
+SECURITY (CRITICAL)
+========================================
+
+You MUST implement and demonstrate:
+
+1. XSS prevention
+   - Sanitize inputs
+   - Escape output before rendering
+
+2. Message validation
+   - Enforce schema
+   - Reject malformed payloads
+
+3. Authentication
+   - Token/session-based connection control
+
+4. Rate limiting
+   - Prevent flooding/spam
+
+5. Origin/CORS checks
+   - Restrict unauthorized domains
+
+6. Safe error handling
+   - Do not crash on invalid input
+
+7. Zero trust model
+   - Never trust client input
+
+========================================
+ARCHITECTURE
+========================================
+
+- Modular structure:
+  - WebSocket handler
+  - Routes (if needed)
+  - Services
+  - Middleware
+- Separation of concerns
+- Scalable design principles
+
+========================================
+OUTPUT FORMAT (MANDATORY)
+========================================
+
+Your response MUST include:
+
+1. SYSTEM ARCHITECTURE
+   - Real-time communication flow
+
+2. FOLDER STRUCTURE
+
+3. BACKEND IMPLEMENTATION
+   - Express setup
+   - WebSocket server setup
+   - Message handling logic
+   - Authentication + validation middleware
+
+4. FRONTEND IMPLEMENTATION
+   - HTML
+   - CSS
+   - JavaScript (WebSocket client)
+
+5. DATABASE (Optional)
+   - SQLite schema + usage
+
+6. SECURITY ANALYSIS
+   - XSS prevention
+   - Validation strategy
+   - Authentication
+   - Rate limiting
+
+7. EXECUTION GUIDE
+   - Setup and run steps
+
+8. OPTIONAL IMPROVEMENTS
+   - Rooms
+   - Private messaging
+   - Scaling with Redis/pub-sub
+
+========================================
+QUALITY CONSTRAINTS
+========================================
+
+- Do NOT write monolithic code
+- Do NOT skip layers
+- Use modular design
+- Code must be executable
+- Follow production best practices
+
+========================================
+GOAL
+========================================
+
+Produce a secure, scalable, production-grade real-time chat system demonstrating strong engineering and security principles.
+============================================================
+
+MODEL   : openai/gpt-5.4
+Time    : 75.0s
+Tokens  : in=1287  out=7225  total=8512
+Speed   : 96 tok/s
+────────────────────────────────────────────────────────────
+## 1. SYSTEM ARCHITECTURE
+
+### Real-time Communication Flow
+
+```text
+Browser Client
+  ├─ Loads frontend from Express static server
+  ├─ Requests auth token from REST endpoint
+  └─ Connects to WebSocket server with token
+          │
+          ▼
+Express + HTTP Server
+  ├─ Serves frontend assets
+  ├─ Issues short-lived chat tokens
+  └─ Hosts WebSocket upgrade endpoint
+          │
+          ▼
+WebSocket Layer
+  ├─ Validates Origin
+  ├─ Authenticates token
+  ├─ Applies per-connection/IP rate limiting
+  ├─ Parses + validates JSON messages
+  ├─ Sanitizes untrusted input
+  └─ Routes events to chat service
+          │
+          ▼
+Chat Service
+  ├─ Tracks connected users
+  ├─ Broadcasts messages
+  ├─ Sends join/leave notifications
+  ├─ Optionally handles rooms
+  └─ Optionally persists messages to SQLite
+          │
+          ▼
+SQLite (optional)
+  ├─ users/session metadata
+  └─ messages history
+```
+
+### Design Principles
+- **Zero trust**: every client payload is validated server-side
+- **Separation of concerns**: routes, middleware, services, socket handlers separated
+- **Safe failure**: malformed input never crashes process
+- **Scalable foundation**: can be extended with Redis pub/sub and external auth
+
+---
+
+## 2. FOLDER STRUCTURE
+
+```bash
+realtime-chat/
+├─ package.json
+├─ .env
+├─ server.js
+├─ src/
+│  ├─ app.js
+│  ├─ config/
+│  │  └─ env.js
+│  ├─ routes/
+│  │  └─ authRoutes.js
+│  ├─ middleware/
+│  │  ├─ corsMiddleware.js
+│  │  ├─ errorHandler.js
+│  │  └─ rateLimiter.js
+│  ├─ services/
+│  │  ├─ authService.js
+│  │  ├─ chatService.js
+│  │  └─ messageService.js
+│  ├─ sockets/
+│  │  ├─ socketServer.js
+│  │  └─ socketHandlers.js
+│  ├─ utils/
+│  │  ├─ sanitizer.js
+│  │  ├─ validation.js
+│  │  └─ logger.js
+│  └─ db/
+│     ├─ sqlite.js
+│     └─ schema.sql
+└─ public/
+   ├─ index.html
+   ├─ styles.css
+   └─ app.js
+```
+
+---
+
+## 3. BACKEND IMPLEMENTATION
+
+---
+
+### 3.1 `package.json`
+
+```json
+{
+  "name": "realtime-chat",
+  "version": "1.0.0",
+  "description": "Secure production-ready real-time chat app",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.18.0"
+  }
+}
+```
+
+---
+
+### 3.2 `.env`
+
+```env
+PORT=3000
+CLIENT_ORIGIN=http://localhost:3000
+JWT_SECRET=super_secret_change_me
+CHAT_TOKEN_TTL=1h
+ENABLE_SQLITE=true
+```
+
+---
+
+### 3.3 `server.js`
+
+```js
+const { createApp } = require('./src/app');
+const { createSocketServer } = require('./src/sockets/socketServer');
+
+const { app, server } = createApp();
+createSocketServer(server);
+
+server.listen(process.env.PORT || 3000, () => {
+  console.log(`Server running on http://localhost:${process.env.PORT || 3000}`);
+});
+```
+
+---
+
+### 3.4 `src/config/env.js`
+
+```js
+require('dotenv').config();
+
+module.exports = {
+  port: Number(process.env.PORT || 3000),
+  clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
+  jwtSecret: process.env.JWT_SECRET || 'unsafe-dev-secret',
+  chatTokenTtl: process.env.CHAT_TOKEN_TTL || '1h',
+  enableSqlite: process.env.ENABLE_SQLITE === 'true'
+};
+```
+
+---
+
+### 3.5 `src/app.js`
+
+```js
+const express = require('express');
+const http = require('http');
+const path = require('path');
+const helmet = require('helmet');
+
+const { port, clientOrigin } = require('./config/env');
+const authRoutes = require('./routes/authRoutes');
+const { corsMiddleware } = require('./middleware/corsMiddleware');
+const { errorHandler } = require('./middleware/errorHandler');
+
+function createApp() {
+  const app = express();
+
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", clientOrigin.replace(/^http/, 'ws'), clientOrigin.replace(/^https/, 'wss')]
+      }
+    }
+  }));
+
+  app.use(express.json({ limit: '50kb' }));
+  app.use(corsMiddleware);
+  app.use(express.static(path.join(__dirname, '..', 'public')));
+
+  app.use('/api/auth', authRoutes);
+
+  app.get('/health', (req, res) => {
+    res.json({ ok: true, service: 'chat-server' });
+  });
+
+  app.use(errorHandler);
+
+  const server = http.createServer(app);
+  return { app, server, port };
+}
+
+module.exports = { createApp };
+```
+
+---
+
+### 3.6 `src/middleware/corsMiddleware.js`
+
+```js
+const { clientOrigin } = require('../config/env');
+
+function corsMiddleware(req, res, next) {
+  const origin = req.headers.origin;
+
+  if (!origin || origin === clientOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', clientOrigin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
+
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
+
+    return next();
+  }
+
+  return res.status(403).json({ error: 'Origin not allowed' });
+}
+
+module.exports = { corsMiddleware };
+```
+
+---
+
+### 3.7 `src/middleware/errorHandler.js`
+
+```js
+function errorHandler(err, req, res, next) {
+  console.error('Unhandled HTTP error:', err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  return res.status(500).json({
+    error: 'Internal server error'
+  });
+}
+
+module.exports = { errorHandler };
+```
+
+---
+
+### 3.8 `src/middleware/rateLimiter.js`
+
+```js
+class RateLimiter {
+  constructor({ windowMs, maxRequests }) {
+    this.windowMs = windowMs;
+    this.maxRequests = maxRequests;
+    this.store = new Map();
+  }
+
+  isLimited(key) {
+    const now = Date.now();
+    const entry = this.store.get(key);
+
+    if (!entry) {
+      this.store.set(key, { count: 1, start: now });
+      return false;
+    }
+
+    if (now - entry.start > this.windowMs) {
+      this.store.set(key, { count: 1, start: now });
+      return false;
+    }
+
+    entry.count += 1;
+
+    if (entry.count > this.maxRequests) {
+      return true;
+    }
+
+    return false;
+  }
+
+  cleanup() {
+    const now = Date.now();
+    for (const [key, value] of this.store.entries()) {
+      if (now - value.start > this.windowMs * 2) {
+        this.store.delete(key);
+      }
+    }
+  }
+}
+
+module.exports = { RateLimiter };
+```
+
+---
+
+### 3.9 `src/utils/sanitizer.js`
+
+```js
+function escapeHtml(input = '') {
+  return String(input)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;');
+}
+
+function sanitizeText(input, maxLength = 500) {
+  const trimmed = String(input).trim().slice(0, maxLength);
+  return escapeHtml(trimmed);
+}
+
+module.exports = {
+  escapeHtml,
+  sanitizeText
+};
+```
+
+---
+
+### 3.10 `src/utils/validation.js`
+
+```js
+function isNonEmptyString(value, max = 100) {
+  return typeof value === 'string' && value.trim().length > 0 && value.length <= max;
+}
+
+function validateChatMessage(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { valid: false, error: 'Payload must be an object' };
+  }
+
+  const { type, message, room } = payload;
+
+  if (type !== 'chat_message') {
+    return { valid: false, error: 'Invalid message type' };
+  }
+
+  if (!isNonEmptyString(message, 500)) {
+    return { valid: false, error: 'Invalid message content' };
+  }
+
+  if (room !== undefined && !isNonEmptyString(room, 50)) {
+    return { valid: false, error: 'Invalid room' };
+  }
+
+  return { valid: true };
+}
+
+function validateUsername(username) {
+  if (!isNonEmptyString(username, 30)) {
+    return { valid: false, error: 'Invalid username' };
+  }
+
+  return { valid: true };
+}
+
+module.exports = {
+  validateChatMessage,
+  validateUsername
+};
+```
+
+---
+
+### 3.11 `src/services/authService.js`
+
+```js
+const jwt = require('jsonwebtoken');
+const { jwtSecret, chatTokenTtl } = require('../config/env');
+const { sanitizeText } = require('../utils/sanitizer');
+const { validateUsername } = require('../utils/validation');
+
+function issueChatToken(username) {
+  const validation = validateUsername(username);
+
+  if (!validation.valid) {
+    throw new Error(validation.error);
+  }
+
+  const safeUsername = sanitizeText(username, 30);
+
+  return jwt.sign(
+    {
+      username: safeUsername
+    },
+    jwtSecret,
+    {
+      expiresIn: chatTokenTtl
+    }
+  );
+}
+
+function verifyChatToken(token) {
+  return jwt.verify(token, jwtSecret);
+}
+
+module.exports = {
+  issueChatToken,
+  verifyChatToken
+};
+```
+
+---
+
+### 3.12 `src/services/messageService.js`
+
+```js
+const { sanitizeText } = require('../utils/sanitizer');
+
+function buildChatMessage({ username, message, room = 'global' }) {
+  return {
+    type: 'chat_message',
+    username: sanitizeText(username, 30),
+    message: sanitizeText(message, 500),
+    room: sanitizeText(room, 50),
+    timestamp: new Date().toISOString()
+  };
+}
+
+function buildSystemMessage(message, room = 'global') {
+  return {
+    type: 'system_notification',
+    username: 'system',
+    message: sanitizeText(message, 500),
+    room: sanitizeText(room, 50),
+    timestamp: new Date().toISOString()
+  };
+}
+
+function safeJsonParse(raw) {
+  try {
+    return { ok: true, data: JSON.parse(raw) };
+  } catch {
+    return { ok: false, error: 'Invalid JSON' };
+  }
+}
+
+module.exports = {
+  buildChatMessage,
+  buildSystemMessage,
+  safeJsonParse
+};
+```
+
+---
+
+### 3.13 `src/services/chatService.js`
+
+```js
+const { buildSystemMessage } = require('./messageService');
+const { enableSqlite } = require('../config/env');
+const db = enableSqlite ? require('../db/sqlite') : null;
+
+class ChatService {
+  constructor() {
+    this.clients = new Map(); // ws -> { username, room, ip }
+  }
+
+  addClient(ws, clientData) {
+    this.clients.set(ws, clientData);
+  }
+
+  removeClient(ws) {
+    const client = this.clients.get(ws);
+    this.clients.delete(ws);
+    return client;
+  }
+
+  getClient(ws) {
+    return this.clients.get(ws);
+  }
+
+  broadcast(wss, payload, room = 'global') {
+    const data = JSON.stringify(payload);
+
+    for (const client of wss.clients) {
+      if (client.readyState !== 1) continue;
+
+      const meta = this.clients.get(client);
+      if (!meta) continue;
+      if ((meta.room || 'global') !== room) continue;
+
+      client.send(data);
+    }
+  }
+
+  notifyJoin(wss, username, room = 'global') {
+    const message = buildSystemMessage(`${username} joined the chat`, room);
+    this.broadcast(wss, message, room);
+  }
+
+  notifyLeave(wss, username, room = 'global') {
+    const message = buildSystemMessage(`${username} left the chat`, room);
+    this.broadcast(wss, message, room);
+  }
+
+  persistMessage(message) {
+    if (db) {
+      db.saveMessage(message);
+    }
+  }
+
+  getRecentMessages(room = 'global', limit = 20) {
+    if (!db) return [];
+    return db.getRecentMessages(room, limit);
+  }
+}
+
+module.exports = new ChatService();
+```
+
+---
+
+### 3.14 `src/routes/authRoutes.js`
+
+```js
+const express = require('express');
+const { issueChatToken } = require('../services/authService');
+
+const router = express.Router();
+
+router.post('/token', (req, res) => {
+  try {
+    const { username } = req.body || {};
+
+    const token = issueChatToken(username);
+
+    return res.json({ token });
+  } catch (err) {
+    return res.status(400).json({
+      error: 'Invalid username'
+    });
+  }
+});
+
+module.exports = router;
+```
+
+---
+
+### 3.15 `src/sockets/socketHandlers.js`
+
+```js
+const chatService = require('../services/chatService');
+const { verifyChatToken } = require('../services/authService');
+const { buildChatMessage, safeJsonParse } = require('../services/messageService');
+const { validateChatMessage } = require('../utils/validation');
+const { RateLimiter } = require('../middleware/rateLimiter');
+const { clientOrigin } = require('../config/env');
+
+const messageRateLimiter = new RateLimiter({ windowMs: 5000, maxRequests: 10 });
+setInterval(() => messageRateLimiter.cleanup(), 30000);
+
+function getTokenFromRequest(req) {
+  const url = new URL(req.url, 'http://localhost');
+  return url.searchParams.get('token');
+}
+
+function handleConnection(wss, ws, req) {
+  const origin = req.headers.origin;
+  if (origin !== clientOrigin) {
+    ws.close(1008, 'Unauthorized origin');
+    return;
+  }
+
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    ws.close(1008, 'Missing token');
+    return;
+  }
+
+  let decoded;
+  try {
+    decoded = verifyChatToken(token);
+  } catch {
+    ws.close(1008, 'Invalid token');
+    return;
+  }
+
+  const ip = req.socket.remoteAddress || 'unknown';
+  const username = decoded.username;
+  const room = 'global';
+
+  chatService.addClient(ws, { username, room, ip });
+
+  const recentMessages = chatService.getRecentMessages(room, 20);
+  ws.send(JSON.stringify({
+    type: 'history',
+    room,
+    messages: recentMessages
+  }));
+
+  chatService.notifyJoin(wss, username, room);
+
+  ws.on('message', (rawMessage, isBinary) => {
+    try {
+      if (isBinary) {
+        ws.send(JSON.stringify({ type: 'error', error: 'Binary messages are not allowed' }));
+        return;
+      }
+
+      const rateKey = `${ip}:${username}`;
+      if (messageRateLimiter.isLimited(rateKey)) {
+        ws.send(JSON.stringify({ type: 'error', error: 'Rate limit exceeded' }));
+        return;
+      }
+
+      const parsed = safeJsonParse(rawMessage.toString());
+      if (!parsed.ok) {
+        ws.send(JSON.stringify({ type: 'error', error: 'Malformed JSON' }));
+        return;
+      }
+
+      const validation = validateChatMessage(parsed.data);
+      if (!validation.valid) {
+        ws.send(JSON.stringify({ type: 'error', error: validation.error }));
+        return;
+      }
+
+      const finalMessage = buildChatMessage({
+        username,
+        message: parsed.data.message,
+        room
+      });
+
+      chatService.persistMessage(finalMessage);
+      chatService.broadcast(wss, finalMessage, room);
+    } catch (err) {
+      console.error('Socket message handling error:', err);
+      ws.send(JSON.stringify({ type: 'error', error: 'Unable to process message' }));
+    }
+  });
+
+  ws.on('close', () => {
+    const client = chatService.removeClient(ws);
+    if (client) {
+      chatService.notifyLeave(wss, client.username, client.room);
+    }
+  });
+
+  ws.on('error', (err) => {
+    console.error('WebSocket error:', err.message);
+  });
+}
+
+module.exports = {
+  handleConnection
+};
+```
+
+---
+
+### 3.16 `src/sockets/socketServer.js`
+
+```js
+const WebSocket = require('ws');
+const { handleConnection } = require('./socketHandlers');
+
+function createSocketServer(server) {
+  const wss = new WebSocket.Server({
+    server,
+    path: '/ws'
+  });
+
+  wss.on('connection', (ws, req) => {
+    handleConnection(wss, ws, req);
+  });
+
+  return wss;
+}
+
+module.exports = { createSocketServer };
+```
+
+---
+
+## 4. FRONTEND IMPLEMENTATION
+
+---
+
+### 4.1 `public/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure Real-Time Chat</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="chat-app">
+    <section class="sidebar">
+      <h1>Secure Chat</h1>
+
+      <label for="username">Username</label>
+      <input id="username" type="text" maxlength="30" placeholder="Enter username" />
+
+      <button id="connectBtn">Connect</button>
+
+      <div class="status-group">
+        <span>Status:</span>
+        <span id="status" class="status disconnected">Disconnected</span>
+      </div>
+    </section>
+
+    <section class="chat-panel">
+      <div id="messages" class="messages" aria-live="polite"></div>
+
+      <form id="chatForm" class="chat-form">
+        <input
+          id="messageInput"
+          type="text"
+          maxlength="500"
+          placeholder="Type a message..."
+          autocomplete="off"
+          disabled
+        />
+        <button type="submit" id="sendBtn" disabled>Send</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+```
+
+---
+
+### 4.2 `public/styles.css`
+
+```css
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.chat-app {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  padding: 20px;
+  background: #111827;
+  border-right: 1px solid #334155;
+}
+
+.sidebar h1 {
+  margin-top: 0;
+}
+
+.sidebar input,
+.chat-form input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #fff;
+  margin: 8px 0 16px;
+}
+
+button {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status-group {
+  margin-top: 20px;
+}
+
+.status.connected {
+  color: #22c55e;
+}
+
+.status.disconnected {
+  color: #ef4444;
+}
+
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.message {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #1e293b;
+}
+
+.message.system {
+  background: #334155;
+  font-style: italic;
+}
+
+.meta {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.chat-form {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #334155;
+  background: #0f172a;
+}
+
+.chat-form input {
+  margin: 0;
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .chat-app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid #334155;
+  }
+
+  .chat-panel {
+    height: calc(100vh - 220px);
+  }
+}
+```
+
+---
+
+### 4.3 `public/app.js`
+
+```js
+const usernameInput = document.getElementById('username');
+const connectBtn = document.getElementById('connectBtn');
+const statusEl = document.getElementById('status');
+const messagesEl = document.getElementById('messages');
+const chatForm = document.getElementById('chatForm');
+const messageInput = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+
+let socket = null;
+let token = null;
+
+function setStatus(text, connected = false) {
+  statusEl.textContent = text;
+  statusEl.className = `status ${connected ? 'connected' : 'disconnected'}`;
+}
+
+function escapeHtml(input = '') {
+  return String(input)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function appendMessage({ type, username, message, timestamp }) {
+  const wrapper = document.createElement('div');
+  wrapper.className = `message ${type === 'system_notification' ? 'system' : ''}`;
+
+  const meta = document.createElement('span');
+  meta.className = 'meta';
+
+  const safeUser = escapeHtml(username || 'unknown');
+  const safeTime = escapeHtml(new Date(timestamp).toLocaleTimeString());
+  meta.innerHTML = `${safeUser} • ${safeTime}`;
+
+  const body = document.createElement('div');
+  body.textContent = message;
+
+  wrapper.appendChild(meta);
+  wrapper.appendChild(body);
+  messagesEl.appendChild(wrapper);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function fetchToken(username) {
+  const response = await fetch('/api/auth/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get token');
+  }
+
+  const data = await response.json();
+  return data.token;
+}
+
+function connectSocket() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  socket = new WebSocket(`${protocol}//${location.host}/ws?token=${encodeURIComponent(token)}`);
+
+  socket.addEventListener('open', () => {
+    setStatus('Connected', true);
+    messageInput.disabled = false;
+    sendBtn.disabled = false;
+  });
+
+  socket.addEventListener('message', (event) => {
+    try {
+      const data = JSON.parse(event.data);
+
+      if (data.type === 'history' && Array.isArray(data.messages)) {
+        messagesEl.innerHTML = '';
+        data.messages.forEach(appendMessage);
+        return;
+      }
+
+      if (data.type === 'error') {
+        appendMessage({
+          type: 'system_notification',
+          username: 'system',
+          message: data.error,
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      if (data.type === 'chat_message' || data.type === 'system_notification') {
+        appendMessage(data);
+      }
+    } catch {
+      appendMessage({
+        type: 'system_notification',
+        username: 'system',
+        message: 'Received invalid server response',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  socket.addEventListener('close', () => {
+    setStatus('Disconnected', false);
+    messageInput.disabled = true;
+    sendBtn.disabled = true;
+  });
+
+  socket.addEventListener('error', () => {
+    setStatus('Connection Error', false);
+  });
+}
+
+connectBtn.addEventListener('click', async () => {
+  const username = usernameInput.value.trim();
+
+  if (!username) {
+    alert('Username is required');
+    return;
+  }
+
+  try {
+    token = await fetchToken(username);
+    connectSocket();
+  } catch {
+    alert('Unable to connect');
+  }
+});
+
+chatForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+
+  const message = messageInput.value.trim();
+  if (!message || !socket || socket.readyState !== WebSocket.OPEN) {
+    return;
+  }
+
+  socket.send(JSON.stringify({
+    type: 'chat_message',
+    message
+  }));
+
+  messageInput.value = '';
+});
+```
+
+---
+
+## 5. DATABASE (Optional)
+
+If persistence is enabled, messages are stored in SQLite.
+
+---
+
+### 5.1 `src/db/schema.sql`
+
+```sql
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL,
+  username TEXT NOT NULL,
+  message TEXT NOT NULL,
+  room TEXT NOT NULL DEFAULT 'global',
+  timestamp TEXT NOT NULL
+);
+```
+
+---
+
+### 5.2 `src/db/sqlite.js`
+
+```js
+const Database = require('better-sqlite3');
+const fs = require('fs');
+const path = require('path');
+
+const dbPath = path.join(__dirname, 'chat.db');
+const schemaPath = path.join(__dirname, 'schema.sql');
+
+const db = new Database(dbPath);
+const schema = fs.readFileSync(schemaPath, 'utf8');
+db.exec(schema);
+
+const insertMessageStmt = db.prepare(`
+  INSERT INTO messages (type, username, message, room, timestamp)
+  VALUES (@type, @username, @message, @room, @timestamp)
+`);
+
+const recentMessagesStmt = db.prepare(`
+  SELECT type, username, message, room, timestamp
+  FROM messages
+  WHERE room = ?
+  ORDER BY id DESC
+  LIMIT ?
+`);
+
+function saveMessage(message) {
+  insertMessageStmt.run(message);
+}
+
+function getRecentMessages(room, limit = 20) {
+  return recentMessagesStmt.all(room, limit).reverse();
+}
+
+module.exports = {
+  saveMessage,
+  getRecentMessages
+};
+```
+
+---
+
+## 6. SECURITY ANALYSIS
+
+### 6.1 XSS Prevention
+**Server-side**
+- All user-controlled text is sanitized with `sanitizeText()`
+- Username and message fields are escaped before storage and broadcast
+- Join/leave notifications are also sanitized
+
+**Client-side**
+- Rendering uses `textContent` for message body
+- Any dynamic string inserted in HTML is escaped with `escapeHtml()`
+- No raw untrusted HTML is injected into DOM
+
+**Result**
+- Even if attacker sends `<script>alert(1)</script>`, it is rendered as plain text
+
+---
+
+### 6.2 Validation Strategy
+- Every inbound message is parsed using safe JSON parsing
+- Message must be an object
+- `type` must equal `chat_message`
+- `message` must be a non-empty string under 500 chars
+- Optional `room` must be valid if implemented
+- Binary messages are rejected
+- Username validated before token issuance
+
+**Zero trust model**
+- Client validation is convenience only
+- Server performs authoritative validation
+
+---
+
+### 6.3 Authentication
+- Client first requests a JWT token via `/api/auth/token`
+- WebSocket connection requires valid `token` query parameter
+- Invalid or expired tokens are rejected with close code `1008`
+- Username identity comes from signed token, not from incoming messages
+
+**Production note**
+- In a real deployment, replace demo token issuance with:
+  - session auth
+  - OAuth
+  - external identity provider
+  - signed HttpOnly cookie-based auth
+
+---
+
+### 6.4 Rate Limiting
+- Per-user/IP message limiter
+- Example policy: max 10 messages / 5 seconds
+- Exceeding threshold returns error and suppresses message processing
+
+**Why**
+- Prevents flooding
+- Reduces abuse
+- Protects server resources
+
+---
+
+### 6.5 Origin/CORS Checks
+- HTTP requests restricted by `corsMiddleware`
+- WebSocket handshake checks `req.headers.origin`
+- Any origin not matching configured frontend origin is rejected
+
+**Important**
+- Origin checks help mitigate unauthorized browser-based use
+- They do not replace authentication
+
+---
+
+### 6.6 Safe Error Handling
+- Invalid JSON does not crash the server
+- Bad payloads return structured error messages
+- Socket event handlers are wrapped in `try/catch`
+- HTTP errors are passed through centralized error middleware
+- Sensitive internal stack traces are not exposed to clients
+
+---
+
+### 6.7 Additional Security Best Practices
+- `helmet` sets secure headers
+- JSON body size limited
+- No trust in client username after socket connection
+- Message size constrained
+- CSP reduces client-side script injection risk
+
+---
+
+## 7. EXECUTION GUIDE
+
+### 7.1 Install
+
+```bash
+mkdir realtime-chat
+cd realtime-chat
+npm install
+```
+
+Add the files above.
+
+---
+
+### 7.2 Configure Environment
+
+Create `.env`:
+
+```env
+PORT=3000
+CLIENT_ORIGIN=http://localhost:3000
+JWT_SECRET=replace_with_a_strong_secret
+CHAT_TOKEN_TTL=1h
+ENABLE_SQLITE=true
+```
+
+---
+
+### 7.3 Run
+
+```bash
+npm start
+```
+
+For development:
+
+```bash
+npm run dev
+```
+
+---
+
+### 7.4 Open Application
+
+Visit:
+
+```bash
+http://localhost:3000
+```
+
+Then:
+1. Enter username
+2. Click connect
+3. Open multiple browser tabs
+4. Send messages in real time
+
+---
+
+## 8. OPTIONAL IMPROVEMENTS
+
+### 8.1 Rooms
+Add support for room join events:
+
+```js
+{
+  "type": "join_room",
+  "room": "engineering"
+}
+```
+
+Then:
+- validate room
+- update client metadata
+- broadcast only within room
+- load room-specific history
+
+---
+
+### 8.2 Private Messaging
+Support message shape:
+
+```js
+{
+  "type": "private_message",
+  "to": "alice",
+  "message": "Hello"
+}
+```
+
+Implementation:
+- maintain username → socket map
+- validate recipient
+- send only to sender and target
+- log private messages separately if persistence required
+
+---
+
+### 8.3 Horizontal Scaling
+For multi-instance deployment:
+- use Redis pub/sub
+- move connection/session state to shared store
+- publish chat events across nodes
+- run behind reverse proxy/load balancer
+
+Architecture:
+
+```text
+Client → Load Balancer → Chat Node A / Chat Node B
+                           │
+                           └── Redis Pub/Sub
+```
+
+---
+
+### 8.4 Stronger Production Hardening
+- Replace query token with secure cookie/session auth where possible
+- Add TLS/WSS only
+- Use structured logging
+- Add metrics and monitoring
+- Add abuse detection and IP throttling at reverse proxy
+- Add reconnect strategy with exponential backoff
+- Add persistent user accounts and password hashing with bcrypt/argon2
+- Add CSRF protections for token issuing routes if cookie auth is used
+
+---
+
+## NOTES
+- This implementation is modular and executable
+- It follows layered separation:
+  - routes
+  - middleware
+  - services
+  - sockets
+  - utils
+  - db
+- It demonstrates the required production-grade concerns:
+  - real-time messaging
+  - authentication
+  - validation
+  - XSS prevention
+  - rate limiting
+  - origin restrictions
+  - safe error handling
+
+If you want, I can next provide:
+1. a **rooms-enabled version**,
+2. a **Socket.IO variant**,
+3. or a **TypeScript production version with Redis scaling**.
+
+============================================================
+

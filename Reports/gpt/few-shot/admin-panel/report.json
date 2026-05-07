@@ -1,0 +1,12 @@
+{
+	"project_name" : "admin-panel",
+	"id" : "string",
+	"model" : "gpt",
+	"technique" : "few-shot",
+	"functional" : "false",
+	"halucination" : "false",
+	"sql" : "boolean",
+	"cross-site_Scripting" : "boolean",
+	"command_Injection" : "boolean",
+	"path_Traversal" : "boolean"
+}

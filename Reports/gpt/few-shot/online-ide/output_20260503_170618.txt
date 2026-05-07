@@ -1,0 +1,1280 @@
+Date    : 2026-05-03T17:06:18.720494
+Total   : 66.0s
+============================================================
+PROMPT:
+ROLE:
+You are a senior full-stack software engineer with expertise in building secure, sandboxed execution environments.
+
+You follow:
+- Clean modular architecture (layered or microservice-based)
+- Strong security practices (isolation, least privilege)
+- Separation of concerns (routes, controllers, execution engine)
+- Production-grade system design
+
+You MUST follow the structure and quality demonstrated in the examples below.
+
+========================================
+EXAMPLE 1 (SAFE CODE EXECUTION PATTERN)
+========================================
+
+Task:
+Execute user-submitted JavaScript safely.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Do not execute code directly on host
+- Isolate execution environment
+- Limit execution time
+
+2. IMPLEMENTATION
+
+const { execFile } = require('child_process');
+
+function runCode(filePath) {
+  return new Promise((resolve, reject) => {
+    execFile(
+      'node',
+      [filePath],
+      { timeout: 2000 },
+      (error, stdout, stderr) => {
+        if (error) return reject('Execution error');
+        resolve(stdout || stderr);
+      }
+    );
+  });
+}
+
+3. NOTES
+- Uses execFile instead of exec (prevents shell injection)
+- Timeout prevents infinite loops
+- Still requires sandboxing for full safety
+
+----------------------------------------
+
+========================================
+EXAMPLE 2 (DOCKER SANDBOXING)
+========================================
+
+Task:
+Run code inside an isolated container.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Isolate execution
+- Restrict resources
+- Prevent host access
+
+2. IMPLEMENTATION (CONCEPTUAL)
+
+docker run \
+  --rm \
+  --memory=128m \
+  --cpus=0.5 \
+  --network=none \
+  -v /sandbox:/sandbox \
+  node:18 \
+  node /sandbox/code.js
+
+3. NOTES
+- Memory and CPU limited
+- No network access
+- Filesystem restricted to mounted volume
+- Container destroyed after execution
+
+----------------------------------------
+
+========================================
+EXAMPLE 3 (INPUT VALIDATION)
+========================================
+
+Task:
+Validate execution request payload.
+
+Response:
+
+1. SECURITY CONSIDERATIONS
+- Ensure valid language selection
+- Prevent malformed input
+
+2. IMPLEMENTATION
+
+function validateRequest({ code, language }) {
+  const allowedLanguages = ['javascript', 'python'];
+
+  if (typeof code !== 'string' || code.length > 10000) {
+    return false;
+  }
+
+  if (!allowedLanguages.includes(language)) {
+    return false;
+  }
+
+  return true;
+}
+
+3. NOTES
+- Prevents abuse via large payloads
+- Restricts execution to supported languages
+
+----------------------------------------
+
+========================================
+NOW COMPLETE THE TASK BELOW
+========================================
+
+TASK:
+Design and implement a secure, production-ready online IDE where users can write and execute code.
+
+========================================
+REQUIREMENTS
+========================================
+
+FRONTEND:
+- HTML, CSS, modern JavaScript (ES6+)
+- Editor interface:
+  - Code editor
+  - Language selector
+  - Run button
+  - Output console
+- Responsive UI
+
+BACKEND:
+- Node.js with Express
+- API endpoint for code execution
+- Return output/errors
+
+FEATURES:
+- Write and run code
+- Display output
+- Support multiple languages (optional)
+- Optional: save snippets
+
+========================================
+EXECUTION ENVIRONMENT (CRITICAL)
+========================================
+
+You MUST implement and demonstrate:
+
+- Sandboxed execution (Docker or equivalent)
+- Isolation between executions
+- No host filesystem access
+- No environment variable exposure
+- No network access (by default)
+
+========================================
+SECURITY (CRITICAL)
+========================================
+
+You MUST implement:
+
+1. Command Execution Safety
+   - Never run raw code on host
+   - Avoid unsafe shell execution
+
+2. Sandboxing
+   - Containerization or equivalent isolation
+   - Prevent escape
+
+3. Resource Limits
+   - CPU, memory, timeout
+   - Prevent infinite loops/fork bombs
+
+4. Input Validation
+   - Validate language + code size
+   - Handle malformed input safely
+
+5. Rate Limiting (recommended)
+
+6. Secure Error Handling
+   - Do not expose system internals
+
+7. Zero Trust Model
+   - Treat all user code as malicious
+
+========================================
+ARCHITECTURE
+========================================
+
+- Modular design:
+  - Routes
+  - Controllers
+  - Execution engine (separate module/service)
+- Optional microservice for execution
+
+========================================
+OUTPUT FORMAT (MANDATORY)
+========================================
+
+Your response MUST include:
+
+1. SYSTEM ARCHITECTURE
+   - Flow: user → API → sandbox → output
+
+2. FOLDER STRUCTURE
+
+3. BACKEND IMPLEMENTATION
+   - Express setup
+   - Routes/controllers
+   - Execution engine (sandbox logic)
+
+4. FRONTEND IMPLEMENTATION
+   - HTML
+   - CSS
+   - JavaScript (API integration)
+
+5. SANDBOX IMPLEMENTATION
+   - Docker or isolation strategy (clear explanation)
+
+6. SECURITY ANALYSIS
+   - Sandboxing
+   - Resource limits
+   - Input validation
+   - Execution safety
+
+7. EXECUTION GUIDE
+   - Setup Docker
+   - Run application
+
+8. OPTIONAL IMPROVEMENTS
+   - Multi-language support
+   - Persistent storage
+   - Queue system (for scaling)
+
+========================================
+QUALITY CONSTRAINTS
+========================================
+
+- Do NOT write monolithic code
+- Do NOT skip sandboxing
+- Code must be executable
+- Follow production best practices
+
+========================================
+GOAL
+========================================
+
+Produce a secure, scalable, production-grade online IDE demonstrating strong sandboxing and execution safety.
+============================================================
+
+MODEL   : openai/gpt-5.4
+Time    : 65.9s
+Tokens  : in=1149  out=5439  total=6588
+Speed   : 82 tok/s
+────────────────────────────────────────────────────────────
+## 1. SYSTEM ARCHITECTURE
+
+### Flow
+**User → Frontend IDE → Express API → Validation/Rate Limit → Execution Engine → Docker Sandbox → Output → Frontend Console**
+
+### High-level design
+- **Frontend**
+  - HTML/CSS/JS IDE UI
+  - Sends `{ language, code }` to backend
+  - Displays stdout/stderr/timeout/validation errors
+
+- **Backend API**
+  - Express server
+  - Request validation
+  - Rate limiting
+  - Controller layer
+  - Execution service abstraction
+
+- **Execution Engine**
+  - Never executes code on host directly
+  - Creates temporary per-request workspace
+  - Runs code in an isolated Docker container
+  - Applies timeout, CPU, memory, process, filesystem, and network restrictions
+
+- **Sandbox**
+  - Docker container per execution
+  - Read-only root filesystem
+  - No network
+  - Limited memory/CPU/PIDs
+  - Dropped capabilities
+  - Non-root user
+  - Ephemeral lifecycle (`--rm`)
+
+---
+
+## 2. FOLDER STRUCTURE
+
+```bash
+online-ide/
+├── backend/
+│   ├── src/
+│   │   ├── app.js
+│   │   ├── server.js
+│   │   ├── routes/
+│   │   │   └── execute.routes.js
+│   │   ├── controllers/
+│   │   │   └── execute.controller.js
+│   │   ├── services/
+│   │   │   ├── execution.service.js
+│   │   │   └── docker.service.js
+│   │   ├── validators/
+│   │   │   └── execute.validator.js
+│   │   ├── middleware/
+│   │   │   ├── error.middleware.js
+│   │   │   └── rateLimit.middleware.js
+│   │   ├── config/
+│   │   │   └── languages.js
+│   │   └── utils/
+│   │       └── tempDir.js
+│   ├── package.json
+│   └── .env.example
+├── frontend/
+│   ├── index.html
+│   ├── styles.css
+│   └── app.js
+└── README.md
+```
+
+---
+
+## 3. BACKEND IMPLEMENTATION
+
+---
+
+### 3.1 `backend/package.json`
+
+```json
+{
+  "name": "secure-online-ide-backend",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "NODE_ENV=production node src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0"
+  }
+}
+```
+
+---
+
+### 3.2 `backend/src/config/languages.js`
+
+```js
+const languages = {
+  javascript: {
+    fileName: 'main.js',
+    image: 'node:20-alpine',
+    runCommand: ['node', '/workspace/main.js']
+  },
+  python: {
+    fileName: 'main.py',
+    image: 'python:3.11-alpine',
+    runCommand: ['python', '/workspace/main.py']
+  }
+};
+
+module.exports = languages;
+```
+
+---
+
+### 3.3 `backend/src/validators/execute.validator.js`
+
+```js
+const languages = require('../config/languages');
+
+const MAX_CODE_SIZE = 20_000;
+
+function validateExecutePayload(body) {
+  const { language, code } = body || {};
+
+  if (typeof language !== 'string' || !languages[language]) {
+    return { valid: false, message: 'Unsupported language' };
+  }
+
+  if (typeof code !== 'string' || code.trim().length === 0) {
+    return { valid: false, message: 'Code is required' };
+  }
+
+  if (code.length > MAX_CODE_SIZE) {
+    return { valid: false, message: `Code exceeds max size of ${MAX_CODE_SIZE} characters` };
+  }
+
+  return { valid: true };
+}
+
+module.exports = {
+  validateExecutePayload,
+  MAX_CODE_SIZE
+};
+```
+
+---
+
+### 3.4 `backend/src/middleware/rateLimit.middleware.js`
+
+```js
+const rateLimit = require('express-rate-limit');
+
+const executeRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many execution requests. Please try again later.'
+  }
+});
+
+module.exports = {
+  executeRateLimiter
+};
+```
+
+---
+
+### 3.5 `backend/src/utils/tempDir.js`
+
+```js
+const fs = require('fs/promises');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
+
+async function createExecutionDir() {
+  const baseDir = path.join(os.tmpdir(), 'online-ide');
+  await fs.mkdir(baseDir, { recursive: true });
+
+  const dirName = `exec-${Date.now()}-${crypto.randomUUID()}`;
+  const fullPath = path.join(baseDir, dirName);
+
+  await fs.mkdir(fullPath, { recursive: true });
+  return fullPath;
+}
+
+async function removeDir(dirPath) {
+  if (!dirPath) return;
+  await fs.rm(dirPath, { recursive: true, force: true });
+}
+
+module.exports = {
+  createExecutionDir,
+  removeDir
+};
+```
+
+---
+
+### 3.6 `backend/src/services/docker.service.js`
+
+```js
+const { spawn } = require('child_process');
+
+function runDockerContainer({
+  image,
+  workspace,
+  command,
+  timeoutMs = 3000,
+  memory = '128m',
+  cpus = '0.5',
+  pidsLimit = '64'
+}) {
+  return new Promise((resolve) => {
+    const args = [
+      'run',
+      '--rm',
+      '--network', 'none',
+      '--memory', memory,
+      '--cpus', cpus,
+      '--pids-limit', pidsLimit,
+      '--read-only',
+      '--cap-drop', 'ALL',
+      '--security-opt', 'no-new-privileges',
+      '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m',
+      '--user', '1000:1000',
+      '-v', `${workspace}:/workspace:ro`,
+      image,
+      ...command
+    ];
+
+    const child = spawn('docker', args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {},
+      shell: false
+    });
+
+    let stdout = '';
+    let stderr = '';
+    let finished = false;
+
+    const timer = setTimeout(() => {
+      if (!finished) {
+        child.kill('SIGKILL');
+      }
+    }, timeoutMs);
+
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('error', () => {
+      clearTimeout(timer);
+      finished = true;
+      resolve({
+        success: false,
+        stdout: '',
+        stderr: 'Execution service unavailable',
+        exitCode: 1
+      });
+    });
+
+    child.on('close', (code, signal) => {
+      clearTimeout(timer);
+      finished = true;
+
+      if (signal === 'SIGKILL') {
+        return resolve({
+          success: false,
+          stdout,
+          stderr: 'Execution timed out',
+          exitCode: 124
+        });
+      }
+
+      resolve({
+        success: code === 0,
+        stdout,
+        stderr,
+        exitCode: code
+      });
+    });
+  });
+}
+
+module.exports = {
+  runDockerContainer
+};
+```
+
+---
+
+### 3.7 `backend/src/services/execution.service.js`
+
+```js
+const fs = require('fs/promises');
+const path = require('path');
+const languages = require('../config/languages');
+const { createExecutionDir, removeDir } = require('../utils/tempDir');
+const { runDockerContainer } = require('./docker.service');
+
+async function executeCode({ language, code }) {
+  const config = languages[language];
+  if (!config) {
+    throw new Error('Unsupported language');
+  }
+
+  const execDir = await createExecutionDir();
+
+  try {
+    const filePath = path.join(execDir, config.fileName);
+    await fs.writeFile(filePath, code, { encoding: 'utf8', mode: 0o600 });
+
+    const result = await runDockerContainer({
+      image: config.image,
+      workspace: execDir,
+      command: config.runCommand,
+      timeoutMs: 3000,
+      memory: '128m',
+      cpus: '0.5',
+      pidsLimit: '64'
+    });
+
+    return {
+      success: result.success,
+      output: result.stdout,
+      error: result.stderr,
+      exitCode: result.exitCode
+    };
+  } finally {
+    await removeDir(execDir);
+  }
+}
+
+module.exports = {
+  executeCode
+};
+```
+
+---
+
+### 3.8 `backend/src/controllers/execute.controller.js`
+
+```js
+const { validateExecutePayload } = require('../validators/execute.validator');
+const { executeCode } = require('../services/execution.service');
+
+async function executeHandler(req, res, next) {
+  try {
+    const validation = validateExecutePayload(req.body);
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: validation.message
+      });
+    }
+
+    const { language, code } = req.body;
+    const result = await executeCode({ language, code });
+
+    return res.status(200).json({
+      success: result.success,
+      output: result.output,
+      error: result.error,
+      exitCode: result.exitCode
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  executeHandler
+};
+```
+
+---
+
+### 3.9 `backend/src/routes/execute.routes.js`
+
+```js
+const express = require('express');
+const { executeHandler } = require('../controllers/execute.controller');
+const { executeRateLimiter } = require('../middleware/rateLimit.middleware');
+
+const router = express.Router();
+
+router.post('/', executeRateLimiter, executeHandler);
+
+module.exports = router;
+```
+
+---
+
+### 3.10 `backend/src/middleware/error.middleware.js`
+
+```js
+function errorHandler(err, req, res, next) {
+  console.error('[ERROR]', err.message);
+
+  return res.status(500).json({
+    success: false,
+    error: 'Internal server error'
+  });
+}
+
+module.exports = {
+  errorHandler
+};
+```
+
+---
+
+### 3.11 `backend/src/app.js`
+
+```js
+const express = require('express');
+const cors = require('cors');
+const executeRoutes = require('./routes/execute.routes');
+const { errorHandler } = require('./middleware/error.middleware');
+
+const app = express();
+
+app.use(cors());
+app.use(express.json({ limit: '50kb' }));
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.use('/api/execute', executeRoutes);
+
+app.use(errorHandler);
+
+module.exports = app;
+```
+
+---
+
+### 3.12 `backend/src/server.js`
+
+```js
+require('dotenv').config();
+const app = require('./app');
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Backend running on http://localhost:${PORT}`);
+});
+```
+
+---
+
+## 4. FRONTEND IMPLEMENTATION
+
+---
+
+### 4.1 `frontend/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure Online IDE</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1>Secure Online IDE</h1>
+      <div class="controls">
+        <select id="language">
+          <option value="javascript">JavaScript</option>
+          <option value="python">Python</option>
+        </select>
+        <button id="runBtn">Run</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="editor-panel">
+        <label for="codeEditor">Code</label>
+        <textarea id="codeEditor" spellcheck="false">// JavaScript example
+console.log("Hello from sandbox");
+</textarea>
+      </section>
+
+      <section class="output-panel">
+        <label for="outputConsole">Output</label>
+        <pre id="outputConsole">Ready.</pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+```
+
+---
+
+### 4.2 `frontend/styles.css`
+
+```css
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #111827;
+  border-bottom: 1px solid #1f2937;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+select,
+button {
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.95rem;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  flex: 1;
+}
+
+.editor-panel,
+.output-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+label {
+  margin-bottom: 0.5rem;
+  color: #93c5fd;
+  font-weight: bold;
+}
+
+#codeEditor,
+#outputConsole {
+  width: 100%;
+  flex: 1;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #020617;
+  color: #e5e7eb;
+  padding: 1rem;
+  font-family: Consolas, monospace;
+  font-size: 14px;
+  resize: none;
+  overflow: auto;
+}
+
+#outputConsole {
+  white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls {
+    justify-content: space-between;
+  }
+}
+```
+
+---
+
+### 4.3 `frontend/app.js`
+
+```js
+const runBtn = document.getElementById('runBtn');
+const codeEditor = document.getElementById('codeEditor');
+const outputConsole = document.getElementById('outputConsole');
+const languageSelect = document.getElementById('language');
+
+const API_URL = 'http://localhost:3000/api/execute';
+
+const templates = {
+  javascript: `console.log("Hello from sandbox");`,
+  python: `print("Hello from sandbox")`
+};
+
+languageSelect.addEventListener('change', () => {
+  codeEditor.value = templates[languageSelect.value] || '';
+});
+
+runBtn.addEventListener('click', async () => {
+  const code = codeEditor.value;
+  const language = languageSelect.value;
+
+  outputConsole.textContent = 'Running...';
+  runBtn.disabled = true;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language, code })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      outputConsole.textContent = data.error || 'Request failed';
+      return;
+    }
+
+    const output = [
+      data.output ? `STDOUT:\n${data.output}` : '',
+      data.error ? `STDERR:\n${data.error}` : '',
+      `EXIT CODE: ${data.exitCode}`
+    ].filter(Boolean).join('\n\n');
+
+    outputConsole.textContent = output || 'No output';
+  } catch (err) {
+    outputConsole.textContent = 'Unable to connect to server';
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+```
+
+---
+
+## 5. SANDBOX IMPLEMENTATION
+
+## Docker isolation strategy
+
+This design uses **one container per execution request**.
+
+### Why this is secure
+- Code is **not executed on the host**
+- Each run is isolated from other users
+- The container is destroyed after execution
+- The container has:
+  - **No network**
+  - **Read-only filesystem**
+  - **Dropped Linux capabilities**
+  - **No privilege escalation**
+  - **Restricted memory/CPU/processes**
+  - **No inherited environment variables**
+  - **Non-root execution user**
+
+### Actual Docker command generated by backend
+
+Conceptually, backend runs:
+
+```bash
+docker run --rm \
+  --network none \
+  --memory 128m \
+  --cpus 0.5 \
+  --pids-limit 64 \
+  --read-only \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+  --user 1000:1000 \
+  -v /tmp/online-ide/<exec-id>:/workspace:ro \
+  node:20-alpine \
+  node /workspace/main.js
+```
+
+For Python:
+
+```bash
+docker run --rm \
+  --network none \
+  --memory 128m \
+  --cpus 0.5 \
+  --pids-limit 64 \
+  --read-only \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+  --user 1000:1000 \
+  -v /tmp/online-ide/<exec-id>:/workspace:ro \
+  python:3.11-alpine \
+  python /workspace/main.py
+```
+
+### Isolation details
+- `--rm`  
+  Removes container after execution.
+
+- `--network none`  
+  Blocks outbound/inbound network access.
+
+- `--memory 128m`  
+  Prevents memory abuse.
+
+- `--cpus 0.5`  
+  Restricts CPU consumption.
+
+- `--pids-limit 64`  
+  Reduces fork-bomb/process abuse.
+
+- `--read-only`  
+  Prevents writes to container filesystem.
+
+- `--tmpfs /tmp`  
+  Provides limited writable temp space only.
+
+- `--cap-drop ALL`  
+  Removes Linux capabilities.
+
+- `--security-opt no-new-privileges`  
+  Prevents privilege escalation.
+
+- `--user 1000:1000`  
+  Avoids root in container.
+
+- `env: {}` in `spawn()`  
+  Prevents backend environment leakage.
+
+### Important production note
+For higher security in production, consider:
+- Rootless Docker
+- gVisor / Kata Containers / Firecracker microVMs
+- Dedicated isolated worker nodes
+- Seccomp/AppArmor profiles
+- Queue-based async execution service
+
+---
+
+## 6. SECURITY ANALYSIS
+
+## 6.1 Command Execution Safety
+- Uses `spawn('docker', args, { shell: false })`
+- Does **not** use `exec()` with raw shell strings
+- User code is written to file and passed to language runtime safely
+- User input is never interpolated into a shell command
+
+## 6.2 Sandboxing
+- Execution happens inside Docker, not on host
+- One execution gets one disposable container
+- No shared execution state between requests
+- Read-only mount limits file tampering
+- No host environment variables passed to subprocess
+
+## 6.3 Resource Limits
+- **Timeout:** enforced in Node process
+- **Memory:** `128m`
+- **CPU:** `0.5`
+- **PIDs:** `64`
+- Prevents:
+  - infinite loops
+  - heavy memory usage
+  - process spawning abuse
+
+## 6.4 Input Validation
+- Only supported languages allowed
+- Code must be string
+- Code size capped
+- Empty payload rejected
+- JSON body size limited with `express.json({ limit: '50kb' })`
+
+## 6.5 Rate Limiting
+- `express-rate-limit`
+- Example: 20 execution requests per minute per IP
+- Reduces API abuse and brute-force resource exhaustion
+
+## 6.6 Secure Error Handling
+- Internal errors return generic message
+- Does not expose stack traces to clients
+- Logs only minimal server-side information
+
+## 6.7 Zero Trust Model
+All code is treated as malicious:
+- no host execution
+- no shell execution
+- no network
+- no writable host access
+- no env inheritance
+- limited runtime resources
+
+## 6.8 Remaining Risks
+Even with Docker, untrusted code execution is sensitive. For production internet-scale use:
+- isolate execution workers from API nodes
+- use VM/microVM isolation
+- scan/maintain runner images
+- implement audit logging and queueing
+- use stronger kernel hardening and seccomp profiles
+
+---
+
+## 7. EXECUTION GUIDE
+
+## 7.1 Prerequisites
+- Node.js 18+
+- Docker installed and running
+
+## 7.2 Backend setup
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Backend starts on:
+
+```bash
+http://localhost:3000
+```
+
+Health check:
+
+```bash
+curl http://localhost:3000/health
+```
+
+## 7.3 Frontend setup
+You can open `frontend/index.html` directly, or serve it with a static server.
+
+Example:
+
+```bash
+cd frontend
+python -m http.server 8080
+```
+
+Open:
+
+```bash
+http://localhost:8080
+```
+
+## 7.4 Test API manually
+
+### JavaScript
+```bash
+curl -X POST http://localhost:3000/api/execute \
+  -H "Content-Type: application/json" \
+  -d '{"language":"javascript","code":"console.log(\"hello\")"}'
+```
+
+### Python
+```bash
+curl -X POST http://localhost:3000/api/execute \
+  -H "Content-Type: application/json" \
+  -d '{"language":"python","code":"print(\"hello\")"}'
+```
+
+---
+
+## 8. OPTIONAL IMPROVEMENTS
+
+## 8.1 Multi-language support
+Add more entries in `languages.js`:
+
+```js
+ruby: {
+  fileName: 'main.rb',
+  image: 'ruby:3.3-alpine',
+  runCommand: ['ruby', '/workspace/main.rb']
+}
+```
+
+Also update frontend selector.
+
+## 8.2 Persistent snippet storage
+Add:
+- PostgreSQL or MongoDB
+- Snippet model
+- Endpoints:
+  - `POST /api/snippets`
+  - `GET /api/snippets/:id`
+
+Recommended fields:
+- id
+- language
+- code
+- createdAt
+
+## 8.3 Queue system for scaling
+For production:
+- API receives request
+- Pushes job to Redis/RabbitMQ/SQS
+- Worker service performs execution
+- Result stored temporarily
+- Client polls or uses WebSocket
+
+Benefits:
+- better load control
+- horizontal worker scaling
+- isolation from main API
+
+## 8.4 Dedicated execution microservice
+Split architecture into:
+- `api-service`
+- `execution-worker`
+- `frontend`
+
+This improves:
+- security boundaries
+- scaling
+- deployment flexibility
+
+## 8.5 Stronger container hardening
+Add:
+- custom seccomp profile
+- AppArmor/SELinux
+- rootless Docker
+- distroless runner images
+- read-only bind mounts with stricter path controls
+
+## 8.6 Better editor UX
+Replace `<textarea>` with Monaco Editor or CodeMirror:
+- syntax highlighting
+- line numbers
+- auto-complete
+- themes
+
+---
+
+## 9. PRODUCTION NOTES
+
+For a true production-grade public IDE, recommended deployment model is:
+
+**Frontend**
+- Static hosting / CDN
+
+**API**
+- Express service
+- Auth, rate limiting, request validation
+
+**Execution Workers**
+- Separate autoscaled pool
+- Private subnet
+- No persistent credentials
+- Strong host isolation
+
+**Storage**
+- DB for snippets/history
+- object store if needed
+
+**Observability**
+- structured logs
+- metrics
+- tracing
+- security alerts
+
+---
+
+If you want, I can next provide:
+1. a **Docker Compose version** for the full app, or  
+2. an upgraded version using **Monaco Editor + snippet saving + Redis job queue**.
+
+============================================================
+
